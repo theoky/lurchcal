@@ -1,0 +1,13 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-01-14T20:06:53+01:00
+
+====== Ideen ======
+Created Samstag 14 Januar 2023
+
+Tasks, die länger als Einheit sind, in Untereinheiten aufsplitten
+
+Workflow
+
+parallel / sequentiell -> siehe SCCH ZIM
+

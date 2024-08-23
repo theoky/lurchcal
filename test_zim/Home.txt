@@ -1,0 +1,8 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2024-02-06T20:45:32+01:00
+
+====== Home ======
+Created Dienstag 06 Februar 2024
+
++[[+Geplante Tasks|Geplante Tasks]]

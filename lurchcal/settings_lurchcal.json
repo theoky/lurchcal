@@ -1,0 +1,142 @@
+[
+    { "type": "title",
+      "title": "Lurch Cal Appointments" },
+
+    { "type": "numeric",
+      "title": "Default task minutes",
+      "desc": "How long should a short task without time information take (default=6 min).",
+      "section": "appt",
+      "key": "def_task_len" },
+
+    { "type": "numeric",
+      "title": "Minimum task duration for an appointment",
+      "desc": "How long should a task at least be in minutes to create an appointment in the calendar.",
+      "section": "appt",
+      "key": "min_task_len_4_appt" },
+
+    { "type": "numeric",
+      "title": "Lunch break duration",
+      "desc": "How long should the lunch break be.",
+      "section": "appt",
+      "key": "lunch_break" },
+
+    { "type": "numeric",
+      "title": "Short break duration",
+      "desc": "How long should a short break be.",
+      "section": "appt",
+      "key": "short_break" },
+
+    { "type": "bool",
+      "title": "Break after ILM tasks",
+      "desc": "Should there be a short break after the ILM task.",
+      "section": "appt",
+      "key": "short_break_after_ilm" },
+
+   { "type": "numeric",
+      "title": "Number of days to schedule for",
+      "desc": "How many days schould be used for scheduling.",
+      "section": "appt",
+      "key": "days_for_scheduling" },
+
+    { "type": "string",
+      "title": "Lunch break time",
+      "desc": "Time of the lunch break",
+      "section": "appt",
+      "key": "lunch_break_time" },
+
+    { "type": "string",
+      "title": "Before noon break time",
+      "desc": "Time of the break before noon.",
+      "section": "appt",
+      "key": "before_noon_break_time" },
+
+      { "type": "string",
+      "title": "Start of day",
+      "desc": "First hour per day to schedule tasks.",
+      "section": "appt",
+      "key": "start_of_day" },
+      
+      { "type": "numeric",
+      "title": "Hours per day",
+      "desc": "Hours per day used to schedule tasks.",
+      "section": "appt",
+      "key": "hours_per_day" },      
+
+
+    { "type": "title",
+      "title": "Lurch Cal Tasks" },
+
+    { "type": "numeric",
+      "title": "Task duration for splitting",
+      "desc": "After how many minutes duration will a task be split.",
+      "section": "tasks",
+      "key": "min_task_split" },
+      
+      
+    { "type": "title",
+      "title": "Lurch Cal Tags" },
+      
+    { "type": "string",
+        "title": "ILM Tag",
+        "desc": "Tag which describes Ivy Lee method tasks.",
+        "section": "tags",
+        "key": "ilm" },
+
+    { "type": "string",
+      "title": "Tags for sorting",
+      "desc": "Task with first tags will scheduled first, task with second etc...",
+      "section": "tags",
+      "key": "tag_order" },
+
+    { "type": "string",
+      "title": "Tags for projects",
+      "desc": "Task for projects, comma separated.",
+      "section": "tags",
+      "key": "tag_projects" },
+
+    { "type": "string",
+      "title": "Tags for appointments to ignore",
+      "desc": "Task will be scheduled during these appointments, comma separated. May contain regex (except for comma).",
+      "section": "tags",
+      "key": "tag_ignore_appt" },
+
+    { "type": "string",
+      "title": "Tags for tasks to create an appointments in any case",
+      "desc": "",
+      "section": "tags",
+      "key": "tags_to_create_appt" },      
+
+    { "type": "string",
+      "title": "Tags for tasks in the future",
+      "desc": "",
+      "section": "tags",
+      "key": "tags_future" },      
+
+
+    { "type": "title",
+      "title": "Lurch Cal ZIM Settings" },
+
+    { "type": "path",
+      "title": "ZIM Exe",
+      "desc": "Path to the ZIM exe.",
+      "section": "zim",
+      "key": "path_exe" },
+
+    { "type": "path",
+      "title": "ZIM Wiki",
+      "desc": "Path to the ZIM Wiki which will be used.",
+      "section": "zim",
+      "key": "path_wiki" },
+
+    { "type": "path",
+      "title": "ZIM DB",
+      "desc": "Path to the ZIM DB.",
+      "section": "zim",
+      "key": "path_db" },
+
+    { "type": "path",
+      "title": "ZIM Page",
+      "desc": "Path to the ZIM page where the tasks should be generated.",
+      "section": "zim",
+      "key": "path_page" }
+]

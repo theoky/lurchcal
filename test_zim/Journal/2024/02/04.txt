@@ -1,0 +1,25 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2024-02-04T18:09:14+01:00
+
+====== Sonntag 04 Feb 2024 ======
+
+[ ] quarter hour ~15m~ <2024-02-04
+[ ] Hierarchy ~5m~
+	[ ] hierarchy 1
+	[ ] hierarchy 2 !!!!
+
+[ ] a week's worth of work
+	[ ] w1 ~3h~
+	[ ] w2 ~3h~
+	[ ] w3 ~3h~
+	[ ] w4 ~3h~
+	[ ] w5 ~3h~
+	[ ] w6 ~3h~
+	[ ] w7 ~3h~
+	[ ] w8 ~3h~
+	[ ] w9 ~3h~
+	[ ] w10 ~3h~
+	[ ] w11 ~4h~
+	[ ] w12 ~4h~
+

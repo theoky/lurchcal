@@ -1,0 +1,13 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-05-01T12:07:39+02:00
+
+====== Tasks with Tilde ======
+Created Montag 01 Mai 2023
+
+[ ] Task ~25 m ~
+[ ] Task ~15 m~
+[ ] Task ~5 m~
+
+Task ~2 days, 3h~
+Task ~1d~

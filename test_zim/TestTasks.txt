@@ -1,0 +1,27 @@
+Content-Type: text/x-zim-wiki
+Wiki-Format: zim 0.6
+Creation-Date: 2023-01-14T20:02:34+01:00
+
+====== TestTasks ======
+Created Samstag 14 Januar 2023
+
+[ ] Parent
+	[ ] Child 1
+	[ ] Child 2
+	[ ] Child 3
+
+[ ] task 1
+[ ] task 2 prio 2 !!
+[ ] task 3 prio 3 !!!
+[ ] task due <2022-12-31
+[ ] task due 2 <2023-12-31
+
+[ ] Task 2b >2032-01-14
+
+[ ] Task 3 ~d 5
+
+~d5
+
+#5
+
+
