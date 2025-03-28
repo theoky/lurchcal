@@ -157,6 +157,7 @@ class LurchCalApp(App):
                 "before_noon_break_time": "10:00",
                 "start_of_day": "9:00",
                 "hours_per_day": 9,
+                "app": "outlook",
             },
         )
 
@@ -237,12 +238,19 @@ class LurchCalApp(App):
                 self.root.ids.rv.data = [
                     {"text": str(t.description)} for t in unscheduled_tasks
                 ]
+                
             except Exception as err:
-                self.root.ids.rv.data = [
-                    {"text": "Exception raised!"},
-                    {"text": str(err.hresult) + ", " + err.strerror},
-                    {"text": "If error: -2147221005, Invalid class string: Outlook installed?"},
-                ]
+                try:
+                    self.root.ids.rv.data = [
+                        {"text": "Exception raised!"},
+                        {"text": str(err.hresult) + ", " + err.strerror},
+                        {"text": "If error: -2147221005, Invalid class string: Is Outlook installed?"},
+                    ]
+                except Exception:
+                    self.root.ids.rv.data = [
+                        {"text": "Exception raised!"},
+                        {"text": str(err) }
+                    ]
 
             sleep(1)
             self.root.ids.create.disabled = False

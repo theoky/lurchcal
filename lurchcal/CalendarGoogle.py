@@ -15,7 +15,9 @@ from googleapiclient.errors import HttpError
 
 from Calendar import Calendar
 from GenAppointment import GenAppointment
+from lurchcal import definitions
 
+from kivy.logger import Logger
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
@@ -80,6 +82,18 @@ class CalendarGoogle(Calendar):
         # TODO log print("No upcoming events found.")
         # return
 
+    def isLurchCalAppt(self, appt):
+        if appt:
+            # Check if the event has extended properties
+            if 'extendedProperties' in appt and 'private' in appt['extendedProperties']:
+                # Check if our lurchcal property exists
+                if 'lurchal' in appt['extendedProperties']['private']:
+                    # Check if the value matches our GUID
+                    if appt['extendedProperties']['private']['lurchal'] == definitions.LURCHCAL_GUID_TEST:
+                        return True
+        return False
+    
+
     def convert_appointment(self, appt):
         ga = GenAppointment()
         ga.summary = appt["summary"].lower()
@@ -95,6 +109,80 @@ class CalendarGoogle(Calendar):
         ga.rel_day = ga.parsedDateTime_start.date()
         return ga
 
+    def create_appointments_4_tasks(self, scheduled_tasks):
+        try:
+            service = build("calendar", "v3", credentials=self.creds)
+            
+            for st in scheduled_tasks:
+                tags = ", ".join(st.task.tags)
+                
+                start_date = st.start
+                end_date = start_date + datetime.timedelta(minutes=st.duration)
+                
+                # Format for Google Calendar API
+                start_time = start_date.isoformat()
+                end_time = end_date.isoformat()
+                
+                # Create event description
+                description = (
+                    f"Prio: {st.task.prio}\n"
+                    + f"{st.task.description}\n"
+                    + f"Source: {st.task.source_name} \n"
+                )
+                
+                if tags:
+                    description += f"Tags: {tags}"
+                
+                # Create the event
+                event = {
+                    'summary': st.task.description[:40],
+                    'description': description,
+                    'start': {
+                        'dateTime': start_time,
+                        'timeZone': 'UTC',
+                    },
+                    'end': {
+                        'dateTime': end_time,
+                        'timeZone': 'UTC',
+                    },
+                    'transparency': 'transparent',  # Equivalent to olFree in Outlook
+                    'visibility': 'private',        # Equivalent to olPrivate in Outlook
+                    'reminders': {
+                        'useDefault': False,
+                        'overrides': [],
+                    },
+                    # Add custom property similar to Outlook's lurchal property
+                    'extendedProperties': {
+                        'private': {
+                            'lurchal': definitions.LURCHCAL_GUID_TEST
+                        }
+                    }
+                }
+                
+                # Insert the event
+                service.events().insert(calendarId='primary', body=event).execute()
+                
+        except HttpError as error:
+            Logger.error(f"An error occurred: {error}")
+            
+        return None
+
+    def delete_lurchcal_meetings(self, appts):
+        try:
+            service = build("calendar", "v3", credentials=self.creds)
+            
+            # Iterate through appointments and delete those created by lurchcal
+            for event in appts:
+                if self.isLurchCalAppt(event):
+                    # This is a lurchcal event, delete it
+                    service.events().delete(calendarId='primary', eventId=event['id']).execute()
+                    Logger.info(f"Deleted lurchcal event: {event.get('summary', 'No summary')}")
+                        
+        except HttpError as error:
+            Logger.error(f"An error occurred while deleting events: {error}")
+        
+        return None
+    
     def simplify_appointments(self):
         if not self.events:
             return []

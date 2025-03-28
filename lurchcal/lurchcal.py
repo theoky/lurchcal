@@ -15,10 +15,10 @@ from ScheduledTask import ScheduledTask
 import definitions
 from multisort import multisort, mscol
 
-# from outlook import get_calendar, get_appointments
 from Calendar import Calendar
 from CalendarGoogle import CalendarGoogle
 from CalendarOutlook import CalendarOutlook
+from CalendarFactory import CalendarFactory
 
 from bigtree import Node, find_name, preorder_iter
 
@@ -27,7 +27,10 @@ from outlook_enums import OlBusyStatus
 from kivy.config import Config
 from kivy.logger import Logger, LOG_LEVELS
 
-from zim_tools import *
+from TaskParser import TaskParser
+from TaskScheduler import TaskScheduler
+
+from task_tools import filter_tasks
 
 # globals
 
@@ -40,311 +43,6 @@ from zim_tools import *
 def lurchcal():
     start_date = datetime(2023, 1, 12, 0, 0)
     days = 5
-
-
-def get_next_day(d: date):
-    res = d + timedelta(days=1)
-    while res.isoweekday() >= 6:
-        res = res + timedelta(days=1)
-
-    return res
-
-
-# def flt_is_in_future(element):
-#     return "future" in element.tags
-
-
-def flt_contains_end_date_prio3(element):
-    return element.due_date is not None and element.prio >= 3
-
-
-def flt_contains_end_date_prio2(element):
-    return element.due_date is not None and element.prio >= 2
-
-
-def flt_contains_end_date_prio1(element):
-    return element.due_date is not None and element.prio >= 1
-
-
-def flt_contains_end_date(element):
-    return element.due_date is not None
-
-
-def flt_gte_prio3(element):
-    return element.prio >= 3
-
-
-def flt_prio2(element):
-    return element.prio == 2
-
-
-def flt_prio1(element):
-    return element.prio == 1
-
-
-def flt_contains_start_date(element):
-    return element.start_date is not None
-
-
-# filter for task
-def flt_ilm(element):
-    return "ilm" in element.description.lower() or "ilm" in element.tags
-
-
-def flt_has_children(element):
-    return element.has_children
-
-
-def filter_tasks(tasks, fits_criteria):
-    elements_meeting_criteria = []
-    elements_not_meeting_criteria = []
-
-    for element in tasks:
-        if fits_criteria(element):
-            elements_meeting_criteria.append(element)
-        else:
-            elements_not_meeting_criteria.append(element)
-
-    return elements_meeting_criteria, elements_not_meeting_criteria
-
-
-def schedule_tasks(days, tasks, start_date, end_date):
-    Logger.debug("lurchal.py: schedule_tasks: {0} tasks".format(len(tasks)))
-
-    ti = 0  # task_index
-    res_scheduled_tasks = []
-    not_scheduled_tasks = []
-
-    while ti < len(tasks):
-        cur_date = start_date
-        task = tasks[ti]
-
-        # start only after start date of task
-        if task.start_date is not None and cur_date < task.start_date:
-            if task.start_date > end_date:
-
-                # task starts later, take next task
-                ti += 1
-                continue
-            else:
-                cur_date = task.start_date
-
-        d = days[cur_date]
-        do_schedule = True
-        res = d.reserve_time(task.duration)
-
-        while not res and do_schedule:
-            cur_date = get_next_day(cur_date)
-            if cur_date < end_date:
-                d = days[cur_date]
-                res = d.reserve_time(task.duration)
-
-                # TODO do something with the reservation, so that an appointment can be made
-            else:
-                do_schedule = False
-
-        if res:
-            st = ScheduledTask(res[0], task, res[1])
-            res_scheduled_tasks.append(st)
-
-            # TODO check and log constraint violation
-
-        else:
-            # TODO log or exception
-            not_scheduled_tasks.append(task)
-            # print("can't schedule task any more: ", task.description)
-
-        ti += 1
-
-    return res_scheduled_tasks, not_scheduled_tasks
-
-
-# https://stackoverflow.com/questions/1060279/iterating-through-a-range-of-dates-in-python
-def daterange(start_date: date, end_date: date):
-    days = int((end_date - start_date).days) + 1
-    for n in range(days):
-        yield start_date + timedelta(n)
-
-
-def schedule_everything(
-    cal, start_date, zim_tasks, appointments, config, parsed_config, start_time=None
-):
-
-    # prepare 7 days
-    day_count = 7
-    days = {}  #  dict[date, Day]
-    act_start_date = None
-    end_date = start_date + timedelta(days=7)
-
-    # get work days from start date on
-    first = True
-    for single_date in (start_date + timedelta(n) for n in range(day_count)):
-        if single_date.isoweekday() < 6:
-            if not act_start_date:
-                act_start_date = single_date
-
-            days[single_date] = Day(
-                single_date,
-                parsed_config["start_of_day"],
-                config.getint("appt", "hours_per_day"),
-            )
-
-            # block everything before now
-            # ENH config
-            if first:
-                first = False
-
-                if act_start_date == start_date:
-                    n = datetime.now().time()
-                    diff = datetime.combine(date.today(), n) - datetime.combine(
-                        date.today(), time(0, 0)
-                    )
-                    diff_m = int(diff.total_seconds() / 60)
-
-                    days[single_date].block_time(time(0, 0), diff_m)
-
-    # first, schedule all calendar appointments for the next n days
-    # TODO schedule calendar appointments
-    for a in appointments:
-        appt = cal.convert_appointment(a)
-
-        if not appt:
-            continue
-
-        # ENH dsl?
-        ignore = False
-        for r in parsed_config["tag_ignore_appt"]:
-            if re.search(r, appt.summary, re.IGNORECASE):
-                ignore = True
-
-        if ignore:
-            continue
-
-        # handle also multi day appointments
-        for day in daterange(
-            appt.parsedDateTime_start.date(), appt.parsedDateTime_end.date()
-        ):
-            d = days.get(day, None)
-            if d:
-                d.block_time(
-                    time(
-                        appt.parsedDateTime_start.hour, appt.parsedDateTime_start.minute
-                    ),
-                    appt.duration,
-                )
-
-    res_scheduled_tasks = []
-    res_unscheduled_tasks = []
-
-    # Schedule some Lunch
-    # ENH refactor
-    for d in days.values():
-        lbt = parsed_config["lunch_break_time"]
-        bnbt = parsed_config["before_noon_break_time"]
-        d.block_time(lbt, config.getint("appt", "lunch_break"))
-        d.block_time(bnbt, config.getint("appt", "short_break"))
-
-        # show break as task if possible
-        res_scheduled_tasks.append(
-            ScheduledTask(
-                datetime.combine(d.date, lbt),
-                Task("Lunch"),
-                config.getint("appt", "lunch_break"),
-            )
-        )
-        res_scheduled_tasks.append(
-            ScheduledTask(
-                datetime.combine(d.date, bnbt),
-                Task("Break"),
-                config.getint("appt", "short_break"),
-            )
-        )
-
-    # remove top hierarchy tasks
-    zim_task_2schedule, remaining_zim_tasks = filter_tasks(zim_tasks, flt_has_children)
-
-    # order by due asc, prio desc, start asc
-    rows_sorted = multisort(
-        remaining_zim_tasks,
-        [
-            mscol(
-                "due_date", clean=lambda s: datetime(2999, 12, 31) if s is None else s
-            ),
-            mscol("prio", reverse=True),
-            mscol("duration", reverse=True),
-            mscol("start_date"),
-        ],
-    )
-
-    Logger.debug(
-        "schedule_everything.py: all tasks: {0} tasks".format(len(rows_sorted))
-    )
-
-    zim_future_tasks, remaining_zim_tasks = filter_tasks(
-        rows_sorted,
-        lambda t: any(e in t.tags for e in parsed_config["tags_future"]),
-    )
-
-    Logger.debug(
-        "schedule_everything.py: tasks: {0}, future tasks: {1}".format(
-            len(remaining_zim_tasks), len(zim_future_tasks)
-        ),
-    )
-
-    # ENH add break after ILM
-    if bool(config.getint("appt", "short_break_after_ilm")):
-        pass
-
-    # schedule all ILM tasks
-    # schedule tasks with end date
-    filter_list = [
-        flt_ilm,
-        flt_contains_end_date_prio3,
-        flt_gte_prio3,
-        flt_contains_end_date_prio2,
-        flt_prio2,
-        flt_contains_end_date_prio1,
-        flt_prio1,
-        flt_contains_end_date,
-    ]
-
-    Logger.debug("schedule_everything.py: schedule filtered tasks")
-    for f in filter_list:
-        zim_task_2schedule, remaining_zim_tasks = filter_tasks(remaining_zim_tasks, f)
-
-        # add by specfied tag order
-        rem_tasks = zim_task_2schedule
-        for oot in parsed_config["tag_order"]:
-            zt2s, rem_tasks = filter_tasks(rem_tasks, lambda e: oot in e.tags)
-
-            rt, rut = schedule_tasks(days, zt2s, act_start_date, end_date)
-            res_scheduled_tasks.extend(rt)
-            res_unscheduled_tasks.extend(rut)
-
-        rt, rut = schedule_tasks(days, rem_tasks, act_start_date, end_date)
-        res_scheduled_tasks.extend(rt)
-        res_unscheduled_tasks.extend(rut)
-
-        # -- zim_task_2schedule is now scheduled
-
-    # schedule the rest
-    Logger.debug(
-        "schedule_everything.py: schedule {0} remaining tasks".format(
-            len(remaining_zim_tasks)
-        )
-    )
-    rt, rut = schedule_tasks(days, remaining_zim_tasks, act_start_date, end_date)
-    res_scheduled_tasks.extend(rt)
-    res_unscheduled_tasks.extend(rut)
-
-    # schedule future tasks (config) after all others if time left
-    Logger.debug("schedule_everything.py: schedule future")
-    rt, rut = schedule_tasks(days, zim_future_tasks, act_start_date, end_date)
-    res_scheduled_tasks.extend(rt)
-    res_unscheduled_tasks.extend(rut)
-
-    return res_scheduled_tasks, res_unscheduled_tasks
-
 
 def print_appointments(date, appointments):
     """
@@ -451,14 +149,18 @@ def create_task_appointments(cb, create_appts, config, parsed_config):
     if not zim_db or not zim_page:
         raise RuntimeError("ZIM DB and/or page not found.")
 
-    cal = CalendarOutlook()
-    # cal = CalendarGoogle()
+    # Create calendar based on app setting in config
+    app_type = config.get("appt", "app").lower()
+    cal = CalendarFactory.create_calendar(app_type)
+    
     cal.authenticate()
 
     # get ZIM tasks
-    zim_tasks = parse_ZIM_tasks(zim_db, config, parsed_config)
+    ## zim_tasks = parse_ZIM_tasks(zim_db, config, parsed_config)
+    task_parser = TaskParser(config)
+    tasks = task_parser.parse_zim_tasks(zim_db)
 
-    zim_task_tree = build_tree(zim_tasks)
+    zim_task_tree = build_tree(tasks) #zimtasks
     tagged_task_list = [
         node.get_attr("task")
         for node in preorder_iter(
@@ -477,24 +179,36 @@ def create_task_appointments(cb, create_appts, config, parsed_config):
     cb()
 
     # schedule tasks
-    scheduled_tasks, unscheduled_tasks = schedule_everything(
+    scheduler = TaskScheduler(config, parsed_config)
+    scheduled_tasks, unscheduled_tasks = scheduler.schedule_everything(
         cal,
         date.today(),
         tagged_task_list,
         appointments,
-        config,
-        parsed_config,
         start_time=datetime.now().time(),
     )
+    
+    
+    #   # schedule tasks
+    # scheduled_tasks, unscheduled_tasks = schedule_everything(
+    #     cal,
+    #     date.today(),
+    #     tagged_task_list,
+    #     appointments,
+    #     config,
+    #     parsed_config,
+    #     start_time=datetime.now().time(),
+    # )
 
-    # sort scheduled tasks by date
-    scheduled_tasks.sort(key=lambda x: x.start)
+    # # sort scheduled tasks by date
+    # scheduled_tasks.sort(key=lambda x: x.start)
 
-    # TBD date: print_appointments(date.today(), appointments)
-    # print_appointments("2024-02-05", new_apps)
+    # # TBD date: print_appointments(date.today(), appointments)
+    # # print_appointments("2024-02-05", new_apps)
 
-    # create appointments in calendar
-    # print("Scheduled Tasks:")
+    # # create appointments in calendar
+    # # print("Scheduled Tasks:")
+
 
     cb()
 

@@ -3,12 +3,6 @@
       "title": "Lurch Cal Appointments" },
 
     { "type": "numeric",
-      "title": "Default task minutes",
-      "desc": "How long should a short task without time information take (default=6 min).",
-      "section": "appt",
-      "key": "def_task_len" },
-
-    { "type": "numeric",
       "title": "Minimum task duration for an appointment",
       "desc": "How long should a task at least be in minutes to create an appointment in the calendar.",
       "section": "appt",
@@ -62,6 +56,12 @@
       "section": "appt",
       "key": "hours_per_day" },      
 
+      { "type": "string",
+      "title": "Calendar app",
+      "desc": "Calendar app to use, outlook or google.",
+      "section": "appt",
+      "key": "app" },
+
 
     { "type": "title",
       "title": "Lurch Cal Tasks" },
@@ -72,6 +72,11 @@
       "section": "tasks",
       "key": "min_task_split" },
       
+    { "type": "numeric",
+      "title": "Default task minutes",
+      "desc": "How long should a short task without time information take (default=6 min).",
+      "section": "tasks",
+      "key": "def_task_len" },
       
     { "type": "title",
       "title": "Lurch Cal Tags" },
