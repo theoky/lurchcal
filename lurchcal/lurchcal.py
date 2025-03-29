@@ -209,22 +209,22 @@ def create_task_appointments(cb, create_appts, config, parsed_config):
     # # create appointments in calendar
     # # print("Scheduled Tasks:")
 
-
     cb()
 
-    # remove all appointments which are from lurchcal, so that they are not rescheduled
-    start_delete_date = datetime.now().replace(
-        hour=0, minute=0, second=0, microsecond=0
-    )
-    end_date = start_delete_date + timedelta(
-        days=config.getint("appt", "days_for_scheduling")
-    )
-    start_delete_date = start_delete_date + timedelta(
-        days=-config.getint("appt", "days_for_scheduling")
-    )
+    if create_appts:
+        # remove all appointments which are from lurchcal, so that they are not rescheduled
+        start_delete_date = datetime.now().replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        end_date = start_delete_date + timedelta(
+            days=config.getint("appt", "days_for_scheduling")
+        )
+        start_delete_date = start_delete_date + timedelta(
+            days=-config.getint("appt", "days_for_scheduling")
+        )
 
-    appointments_del_range = cal.get_appointments(start_date, end_date)
-    cal.delete_lurchcal_meetings(appointments_del_range)
+        appointments_del_range = cal.get_appointments(start_date, end_date)
+        cal.delete_lurchcal_meetings(appointments_del_range)
 
     cb()
 

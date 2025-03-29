@@ -20,11 +20,10 @@ from lurchcal import definitions
 from kivy.logger import Logger
 
 # If modifying these scopes, delete the file token.json.
-SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
+SCOPES = ["https://www.googleapis.com/auth/calendar.events"]
 
 
 class CalendarGoogle(Calendar):
-
     def __init__(self) -> None:
         self.creds = None
         self.events = []
@@ -113,6 +112,8 @@ class CalendarGoogle(Calendar):
         try:
             service = build("calendar", "v3", credentials=self.creds)
             
+            batch = service.new_batch_http_request()
+                        
             for st in scheduled_tasks:
                 tags = ", ".join(st.task.tags)
                 
@@ -139,11 +140,11 @@ class CalendarGoogle(Calendar):
                     'description': description,
                     'start': {
                         'dateTime': start_time,
-                        'timeZone': 'UTC',
+                        'timeZone': 'Europe/Vienna',
                     },
                     'end': {
                         'dateTime': end_time,
-                        'timeZone': 'UTC',
+                        'timeZone': 'Europe/Vienna',
                     },
                     'transparency': 'transparent',  # Equivalent to olFree in Outlook
                     'visibility': 'private',        # Equivalent to olPrivate in Outlook
@@ -160,7 +161,11 @@ class CalendarGoogle(Calendar):
                 }
                 
                 # Insert the event
-                service.events().insert(calendarId='primary', body=event).execute()
+                batch.add(
+                        service.events().insert(calendarId='primary', body=event)
+                    )
+                
+            batch.execute()
                 
         except HttpError as error:
             Logger.error(f"An error occurred: {error}")
@@ -171,13 +176,24 @@ class CalendarGoogle(Calendar):
         try:
             service = build("calendar", "v3", credentials=self.creds)
             
-            # Iterate through appointments and delete those created by lurchcal
-            for event in appts:
-                if self.isLurchCalAppt(event):
-                    # This is a lurchcal event, delete it
-                    service.events().delete(calendarId='primary', eventId=event['id']).execute()
-                    Logger.info(f"Deleted lurchcal event: {event.get('summary', 'No summary')}")
-                        
+            # Collect event IDs for lurchcal appointments
+            event_ids_to_delete = [
+                event['id'] for event in appts if self.isLurchCalAppt(event)
+            ]
+            
+            # Batch delete events
+            if event_ids_to_delete:
+                batch = service.new_batch_http_request()
+                for event_id in event_ids_to_delete:
+                    batch.add(
+                        service.events().delete(calendarId='primary', eventId=event_id),
+                        request_id=event_id
+                    )
+                batch.execute()
+                Logger.info(f"Deleted {len(event_ids_to_delete)} lurchcal events.")
+            else:
+                Logger.info("No lurchcal events found to delete.")
+                
         except HttpError as error:
             Logger.error(f"An error occurred while deleting events: {error}")
         

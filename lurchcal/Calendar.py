@@ -18,6 +18,10 @@ class Calendar(ABC):
         pass
 
     @abstractmethod
+    def isLurchCalAppt(self, appt):
+        return False
+    
+    @abstractmethod
     def convert_appointment(self, appt):
         """Convert a calendar appointment to a simpler lurchal appointment.
 
@@ -34,5 +38,5 @@ class Calendar(ABC):
         return None
 
     @abstractmethod
-    def delete_lurchcal_meetings(self):
+    def delete_lurchcal_meetings(self,appts):
         return None

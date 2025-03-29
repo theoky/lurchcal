@@ -4,10 +4,6 @@
 """
 """
 
-
-import Task
-
-
 class ScheduledTask:
 
     def __init__(self, start=None, task=None, duration=0):
