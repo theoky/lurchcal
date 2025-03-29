@@ -35,13 +35,13 @@ This tool is currently in prealpha and a work in progress. It lacks tests and do
 ## Requirements
 
 - ZIM for the tasks
-- a calendar, currently only Outlook is supported
+- a calendar, Outlook is supported, Google Calendar is on its way.
 - Python 3.11
 - this tool
 
 ## Setup
 
-- install Python 3.11.7, e.g. in a conda environment
+- install Python 3.11.*, e.g. in a conda environment
 - install requirements
 - start LurchCalApp.py
 
