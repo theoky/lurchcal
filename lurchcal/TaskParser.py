@@ -12,7 +12,7 @@ from durations_nlp import Duration
 from kivy.config import Config
 from kivy.logger import Logger, LOG_LEVELS
 
-from Task import Task
+from lurchcal.Task import Task
 
 
 class TaskParser:

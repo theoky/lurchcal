@@ -9,12 +9,12 @@ from datetime import datetime, timedelta, date, time
 
 from kivy.logger import Logger
 
-from Task import Task
-from Day import Day
-from ScheduledTask import ScheduledTask
+from lurchcal.Task import Task
+from lurchcal.Day import Day
+from lurchcal.ScheduledTask import ScheduledTask
 from multisort import multisort, mscol
 
-from task_tools import filter_tasks, flt_has_children, flt_ilm, flt_contains_end_date_prio3, \
+from lurchcal.task_tools import filter_tasks, flt_has_children, flt_ilm, flt_contains_end_date_prio3, \
     flt_contains_end_date_prio2, flt_contains_end_date_prio1, flt_contains_end_date, \
     flt_gte_prio3, flt_prio2, flt_prio1, flt_contains_start_date
     
@@ -94,7 +94,7 @@ class TaskScheduler:
                 # ENH config
                 if first:
                     first = False
-                    if act_start_date == start_date:
+                    if act_start_date == start_date and act_start_date == date.today():
                         n = datetime.now().time()
                         diff = datetime.combine(date.today(), n) - datetime.combine(
                             date.today(), time(0, 0)
