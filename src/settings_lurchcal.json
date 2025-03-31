@@ -106,7 +106,7 @@
       "key": "tag_ignore_appt" },
 
     { "type": "string",
-      "title": "Tags for tasks to create an appointments in any case",
+      "title": "Tags for tasks to create an appointment in any case. This will also be not private.",
       "desc": "",
       "section": "tags",
       "key": "tags_to_create_appt" },      

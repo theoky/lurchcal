@@ -20,7 +20,7 @@ from kivy.lang import Builder
 from kivy.core.window import Window
 from kivy.config import ConfigParser, Config
 
-from lurchcal.lurchcal_wf import create_task_appointments
+from lurchcal.lurchcal_wf import create_task_appointments, remove_appointments
 
 from lurchcal.Task import Task
 
@@ -45,7 +45,11 @@ BoxLayout:
         Button:
             text: 'Create task appointments in calendar'
             on_release: app.start_task_creation_appts()
-            id: create_appts        
+            id: create_appts
+        Button:
+            text: 'Remove LurchCal appts. from cal.'
+            on_release: app.start_appt_removal()
+            id: remove_appts   
     Button:
         text: 'Configure app (or press F1)'
         size: self.texture_size
@@ -257,6 +261,35 @@ class LurchCalApp(App):
             self.root.ids.create_appts.disabled = False
             progress.value = 0
 
+    def remove_appointments_wrapper(self):
+        with self.tlock:
+            self.root.ids.create.disabled = True
+            self.root.ids.create_appts.disabled = True
+            progress = self.root.ids.progress
+            progress.value = 0
+            try:
+                remove_appointments(
+                    self.cb_update, None, self.config, self.parsed_config
+                )
+                
+            except Exception as err:
+                try:
+                    self.root.ids.rv.data = [
+                        {"text": "Exception raised!"},
+                        {"text": str(err.hresult) + ", " + err.strerror},
+                        {"text": "If error: -2147221005, Invalid class string: Is Outlook installed?"},
+                    ]
+                except Exception:
+                    self.root.ids.rv.data = [
+                        {"text": "Exception raised!"},
+                        {"text": str(err) }
+                    ]
+
+            sleep(1)
+            self.root.ids.create.disabled = False
+            self.root.ids.create_appts.disabled = False
+            progress.value = 0
+
     def start_task_creation(self):
         Logger.debug("LurchCalApp.py: App.start_task_creation")
         try:
@@ -270,6 +303,13 @@ class LurchCalApp(App):
         try:
             self.create_appts = True
             Thread(target=self.create_task_appointments_wrapper).start()
+        except Exception as err:
+            Logger.exception("Exception", exc_info=err)
+
+    def start_appt_removal(self):
+        Logger.debug("LurchCalApp.py: App.start_appt_removal")
+        try:
+            Thread(target=self.remove_appointments_wrapper).start()
         except Exception as err:
             Logger.exception("Exception", exc_info=err)
 

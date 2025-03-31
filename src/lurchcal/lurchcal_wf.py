@@ -142,6 +142,30 @@ def write_to_zim_page(zim_page, scheduled_tasks):
                 )
             )
 
+def remove_appointments(cb, cal, config, parsed_config):
+    
+    if not cal:
+        app_type = config.get("appt", "app").lower()
+        
+        cal = CalendarFactory.create_calendar(app_type)
+        cal.authenticate()
+
+    # remove all appointments which are from lurchcal, so that they are not rescheduled
+    start_delete_date = datetime.now().replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+    end_date = start_delete_date + timedelta(
+        days=config.getint("appt", "days_for_scheduling")
+    )
+    start_delete_date = start_delete_date + timedelta(
+        days=-config.getint("appt", "days_for_scheduling")
+    )
+
+    appointments_del_range = cal.get_appointments(start_delete_date, end_date)
+    cal.delete_lurchcal_meetings(appointments_del_range)
+    
+    cb()
+
 
 def create_task_appointments(cb, create_appts, config, parsed_config):
     zim_db = config.get("zim", "path_db")  # os.environ.get("LURCHCAL_ZIM_DB")
@@ -152,8 +176,8 @@ def create_task_appointments(cb, create_appts, config, parsed_config):
 
     # Create calendar based on app setting in config
     app_type = config.get("appt", "app").lower()
-    cal = CalendarFactory.create_calendar(app_type)
     
+    cal = CalendarFactory.create_calendar(app_type)
     cal.authenticate()
 
     # get ZIM tasks
@@ -229,6 +253,10 @@ def create_task_appointments(cb, create_appts, config, parsed_config):
 
     cb()
 
+    for t in scheduled_tasks:
+        if any(e in t.task.tags for e in parsed_config["tags_to_create_appt"]): # parsed_config["tags_to_create_appt"] in t.task.tags:
+            t.task.create_appt_anyway = True
+            
     # add new appointments
     zim_task_book, remaining_zim_tasks = filter_tasks(
         scheduled_tasks,

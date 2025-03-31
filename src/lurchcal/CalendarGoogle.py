@@ -15,7 +15,7 @@ from googleapiclient.errors import HttpError
 
 from lurchcal.Calendar import Calendar
 from lurchcal.GenAppointment import GenAppointment
-import lurchcal.definitions
+from lurchcal import definitions
 
 from kivy.logger import Logger
 
@@ -134,6 +134,12 @@ class CalendarGoogle(Calendar):
                 if tags:
                     description += f"Tags: {tags}"
                 
+                transp ='transparent'   # Equivalent to olFree in Outlook
+                vis = 'private'         # Equivalent to olPrivate in Outlook
+                if st.task.create_appt_anyway:
+                    transp ='opaque'
+                    vis = 'default'
+                    
                 # Create the event
                 event = {
                     'summary': st.task.description[:40],
@@ -146,8 +152,8 @@ class CalendarGoogle(Calendar):
                         'dateTime': end_time,
                         'timeZone': 'Europe/Vienna',
                     },
-                    'transparency': 'transparent',  # Equivalent to olFree in Outlook
-                    'visibility': 'private',        # Equivalent to olPrivate in Outlook
+                    'transparency': transp,     
+                    'visibility': vis,        
                     'reminders': {
                         'useDefault': False,
                         'overrides': [],

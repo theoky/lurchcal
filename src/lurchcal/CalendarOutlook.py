@@ -12,7 +12,8 @@ from dateutil.parser import *
 from lurchcal.Calendar import Calendar
 from lurchcal.GenAppointment import GenAppointment
 
-import lurchcal.definitions
+from lurchcal import definitions
+
 from lurchcal.outlook_enums import *
 
 from kivy.logger import Logger
@@ -133,10 +134,14 @@ class CalendarOutlook(Calendar):
 
             appt.Body = b
 
-            appt.BusyStatus = OlBusyStatus.olFree.value
             appt.MeetingStatus = OlMeetingStatus.olNonMeeting.value
             appt.ReminderSet = False
-            appt.Sensitivity = OlSensitivity.olPrivate.value
+            if st.task.create_appt_anyway:
+                appt.BusyStatus = OlBusyStatus.olBusy.value
+                appt.Sensitivity = OlSensitivity.olNormal.value
+            else:
+                appt.BusyStatus = OlBusyStatus.olFree.value
+                appt.Sensitivity = OlSensitivity.olPrivate.value
 
             prop = appt.UserProperties.Add("lurchal", OlUserPropertyType.olText.value)
             prop.Value = definitions.LURCHCAL_GUID_TEST
