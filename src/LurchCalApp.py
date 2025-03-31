@@ -1,5 +1,5 @@
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# Copyright (C) 2023-2024 theoky
+# Copyright (C) 2023-2025 theoky
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 """
 """
@@ -20,9 +20,9 @@ from kivy.lang import Builder
 from kivy.core.window import Window
 from kivy.config import ConfigParser, Config
 
-from lurchcal import create_task_appointments
+from lurchcal.lurchcal_wf import create_task_appointments
 
-from Task import Task
+from lurchcal.Task import Task
 
 # <Row@Label>:
 #     text_size: self.width, None

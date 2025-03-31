@@ -1,16 +1,14 @@
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# Copyright (C) 2023-2024 theoky
+# Copyright (C) 2023-2025 theoky
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 """
 """
-
 import unittest
 
 from durations_nlp import Duration
 
 from datetime import datetime, time, date, timedelta
 from lurchcal.Task import Task
-
 
 # https://pypi.org/project/durations-nlp/
 

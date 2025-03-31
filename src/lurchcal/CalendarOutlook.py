@@ -1,5 +1,5 @@
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# Copyright (C) 2023-2024 theoky
+# Copyright (C) 2023-2025 theoky
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 """
 """
@@ -9,11 +9,11 @@ from datetime import timedelta, datetime, timezone
 
 from dateutil.parser import *
 
-from Calendar import Calendar
-from GenAppointment import GenAppointment
+from lurchcal.Calendar import Calendar
+from lurchcal.GenAppointment import GenAppointment
 
-import definitions
-from outlook_enums import *
+import lurchcal.definitions
+from lurchcal.outlook_enums import *
 
 from kivy.logger import Logger
 

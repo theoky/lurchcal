@@ -1,5 +1,5 @@
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# Copyright (C) 2023-2024 theoky
+# Copyright (C) 2023-2025 theoky
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 """
 """
@@ -9,28 +9,29 @@ import re
 from datetime import datetime, timedelta, date, time
 from dateutil import parser
 
-from Task import Task
-from Day import Day
-from ScheduledTask import ScheduledTask
-import definitions
+from lurchcal.Task import Task
+from lurchcal.Day import Day
+from lurchcal.ScheduledTask import ScheduledTask
+import lurchcal.definitions
+
 from multisort import multisort, mscol
 
-from Calendar import Calendar
-from CalendarGoogle import CalendarGoogle
-from CalendarOutlook import CalendarOutlook
-from CalendarFactory import CalendarFactory
+from lurchcal.Calendar import Calendar
+from lurchcal.CalendarGoogle import CalendarGoogle
+from lurchcal.CalendarOutlook import CalendarOutlook
+from lurchcal.CalendarFactory import CalendarFactory
 
 from bigtree import Node, find_name, preorder_iter
 
-from outlook_enums import OlBusyStatus
+from lurchcal.outlook_enums import OlBusyStatus
 
 from kivy.config import Config
 from kivy.logger import Logger, LOG_LEVELS
 
-from TaskParser import TaskParser
-from TaskScheduler import TaskScheduler
+from lurchcal.TaskParser import TaskParser
+from lurchcal.TaskScheduler import TaskScheduler
 
-from task_tools import filter_tasks
+from lurchcal.task_tools import filter_tasks
 
 # globals
 

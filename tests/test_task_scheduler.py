@@ -1,21 +1,18 @@
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# Copyright (C) 2023-2024 theoky
+# Copyright (C) 2023-2025 theoky
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 """
 """
 import unittest
 from unittest.mock import Mock, patch
 
-# from datetime import datetime, timedelta, date
 import datetime as dt
 import time # so we can override time.time
 
 from kivy.config import ConfigParser 
 
-from lurchcal.TaskScheduler import TaskScheduler
 from lurchcal.Task import Task
-from lurchcal.Day import Day
-from lurchcal.ScheduledTask import ScheduledTask
+from lurchcal.TaskScheduler import TaskScheduler
 from lurchcal.GenAppointment import GenAppointment
 
 from zoneinfo import ZoneInfo
@@ -251,5 +248,5 @@ class TestTaskScheduler(unittest.TestCase):
         self.assertEqual(len(unscheduled), 0)
         self.assertEqual(scheduled[0].start.date(), dt.date(2024, 1, 3))
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main() 

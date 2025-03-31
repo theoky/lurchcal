@@ -1,5 +1,5 @@
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# Copyright (C) 2023-2024 theoky
+# Copyright (C) 2023-2025 theoky
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 """
 """
@@ -14,10 +14,8 @@ import unittest
 
 from datetime import datetime, time, date, timedelta
 
-# import pyZimOutlookTasks.tests.context
-
-from lurchcal.Day import Day, calc_overlap
-
+from lurchcal.Day import Day
+from lurchcal.Day import calc_overlap
 
 class Task(object):
     def __init__(self, name):

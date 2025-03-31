@@ -3,9 +3,9 @@
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 """
 """
-from CalendarOutlook import CalendarOutlook
-from CalendarGoogle import CalendarGoogle
-from Calendar import Calendar
+from lurchcal.CalendarOutlook import CalendarOutlook
+from lurchcal.CalendarGoogle import CalendarGoogle
+from lurchcal.Calendar import Calendar
 
 
 class CalendarFactory:

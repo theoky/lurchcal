@@ -1,5 +1,5 @@
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# Copyright (C) 2023-2024 theoky
+# Copyright (C) 2023-2025 theoky
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 """
 """
@@ -13,9 +13,9 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-from Calendar import Calendar
-from GenAppointment import GenAppointment
-from lurchcal import definitions
+from lurchcal.Calendar import Calendar
+from lurchcal.GenAppointment import GenAppointment
+import lurchcal.definitions
 
 from kivy.logger import Logger
 
