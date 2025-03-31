@@ -39,11 +39,11 @@ BoxLayout:
     BoxLayout:
         size_hint: 1, .1
         Button:
-            text: 'Create task list page'
+            text: 'Create task list page in ZIM'
             on_release: app.start_task_creation()
             id: create
         Button:
-            text: 'Create task appointments'
+            text: 'Create task appointments in calendar'
             on_release: app.start_task_creation_appts()
             id: create_appts        
     Button:

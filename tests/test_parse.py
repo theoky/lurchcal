@@ -26,8 +26,13 @@ class Test(unittest.TestCase):
     def test_parse(self):
         t = Task("Etwas checken !!! ~0.5h~ >2020-03-15 ")
         self.assertEqual(t.duration, 30)
+        self.assertEqual(t.distribute_duration, True)
+        self.assertEqual(t.assign_duration, False)
 
         t = Task("Etwas checken !!! ~0.5h~ >2020-03-15 #1h#")
+        self.assertEqual(t.duration, 30)
+
+        t = Task("Etwas checken !!! ~ 0.5h ~ >2020-03-15 #1h#")
         self.assertEqual(t.duration, 30)
 
         # Error in time
@@ -37,6 +42,17 @@ class Test(unittest.TestCase):
         # Error in time
         t = Task("Etwas checken !!! ~0.75  h # >2020-03-15")
         self.assertEqual(t.duration, 6)
+
+    def test_param_a(self):
+        t = Task("Etwas checken !!! ~0.5h~a >2020-03-15 ")
+        self.assertEqual(t.duration, 30)
+        self.assertEqual(t.distribute_duration, False)
+        self.assertEqual(t.assign_duration, True)
+
+        t = Task("Etwas checken !!! ~0.5h~ a >2020-03-15 ")
+        self.assertEqual(t.duration, 30)
+        self.assertEqual(t.distribute_duration, True)
+        self.assertEqual(t.assign_duration, False)
 
     def test_Task(self):
         task = Task("Description  ~0.75h~ ", 1, "2023-12-31")
