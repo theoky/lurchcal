@@ -4,7 +4,7 @@
 
 LurchCal[^1] is a tool which aims to improve personal efficiency[^2].
 
-As a long time user of [ZIM](https://github.com/zim-desktop-wiki) for taking  notes and managing tasks, there always has been one challenge: As there are also a significant amount of meetings, keeping some non-meeting time available for working on the tasks can be challenging and blocking focus time doesn't help always.
+As a long time user of [ZIM](https://github.com/zim-desktop-wiki) for taking notes and managing tasks, there always has been one challenge: As there are also a significant amount of meetings, keeping some non-meeting time available for working on the tasks can be challenging and blocking focus time doesn't help always.
 
 One way to handle that is to create appointments in the calendar just for tasks[^3]. Doing that manually is not feasible, so automation is needed.
 

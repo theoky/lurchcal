@@ -11,7 +11,7 @@ Task in ZIM already have meta information:
 - Tasks can contain tags, starting with '@'.
   
 This tool adds the following additional meta data:
-- '~' duration '~' ['a']
+- '\~' duration '\~' ['a']
 
 This specifies the duration of a task, whereas duration can be written in hours, minutes, etc. If no duration is specfied, a configurable value is assigned (e.g., 6 min).
 
@@ -20,11 +20,11 @@ If 'a', which is optional, is specified, each subtasks gets assigned the specifi
 
 ### Examples
 
-> - [ ] task which lasts 10 minutes ~10m~
-> - [ ] task with each subtasks lasting 5 minutes ~10m~
+> - [ ] task which lasts 10 minutes \~10m\~
+> - [ ] task with each subtasks lasting 5 minutes \~10m\~
 >   - [ ] task lasts 5 min (automatically computed)
 >   - [ ] task also lasts 5 min (automatically computed)
-> - [ ] task with each subtasks lasting 15 minutes ~15m~a
+> - [ ] task with each subtasks lasting 15 minutes \~15m\~a
 >   - [ ] task lasts 15 min (assigned from parent)
 >   - [ ] task also lasts 15 min (assigned from parent)
 
