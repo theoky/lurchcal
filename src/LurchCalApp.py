@@ -230,8 +230,7 @@ class LurchCalApp(App):
 
     def create_task_appointments_wrapper(self):
         with self.tlock:
-            self.root.ids.create.disabled = True
-            self.root.ids.create_appts.disabled = True
+            self.root.disabled = True
             progress = self.root.ids.progress
             progress.value = 0
             try:
@@ -257,14 +256,12 @@ class LurchCalApp(App):
                     ]
 
             sleep(1)
-            self.root.ids.create.disabled = False
-            self.root.ids.create_appts.disabled = False
+            self.root.disabled = False
             progress.value = 0
 
     def remove_appointments_wrapper(self):
         with self.tlock:
-            self.root.ids.create.disabled = True
-            self.root.ids.create_appts.disabled = True
+            self.root.disabled = True
             progress = self.root.ids.progress
             progress.value = 0
             try:
@@ -286,8 +283,7 @@ class LurchCalApp(App):
                     ]
 
             sleep(1)
-            self.root.ids.create.disabled = False
-            self.root.ids.create_appts.disabled = False
+            self.root.disabled = False
             progress.value = 0
 
     def start_task_creation(self):
