@@ -15,6 +15,9 @@ from kivy.uix.settings import (
     SettingsWithSpinner,
     SettingsWithSidebar,
 )
+from kivy.uix.recycleview.views import RecycleDataViewBehavior
+from kivy.uix.label import Label
+
 from kivy.logger import Logger, LOG_LEVELS
 from kivy.lang import Builder
 from kivy.core.window import Window
@@ -34,6 +37,11 @@ from lurchcal.Task import Task
 
 # We first define our GUI
 kv = """
+<LeftLabel>:
+    text_size: self.size
+    halign: 'left'
+    valign: 'middle'
+    
 BoxLayout:
     orientation: 'vertical'
     BoxLayout:
@@ -60,23 +68,26 @@ BoxLayout:
         size: self.texture_size
         size_hint: 1, .1
         text: 'Progress:'
+        default_size: None, dp(32)
     ProgressBar:
         id: progress
         value: 0
         max: 6
-        size_hint: 1, .1
+        size_hint: 1, .05
+        default_size: None, dp(16)
     Label:
         size: self.texture_size
         size_hint: 1, .1
-        text: 'Unscheduled tasks'        
+        text: 'Unscheduled tasks'      
+        default_size: None, dp(32)  
     RecycleView:
         id: rv
         scroll_type: ['bars', 'content']
         scroll_wheel_distance: dp(114)
         bar_width: dp(10)
-        viewclass: 'Label'
+        viewclass: 'LeftLabel'
         RecycleBoxLayout:
-            default_size: None, dp(56)
+            default_size: None, dp(32)
             default_size_hint: 1, None
             size_hint_y: None
             height: self.minimum_height
@@ -84,6 +95,9 @@ BoxLayout:
             spacing: dp(0)
 """
 
+class LeftLabel (RecycleDataViewBehavior, Label):
+    def __init__(self, **kwargs):
+        super(LeftLabel, self).__init__(**kwargs)
 
 class LurchCalApp(App):
     def build(self):
