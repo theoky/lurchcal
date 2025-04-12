@@ -70,7 +70,6 @@ class CalendarOutlook(Calendar):
         if self.isLurchCalAppt(appt):
             return None
 
-        # TBD do also for Google
         if appt.BusyStatus in [
             OlBusyStatus.olTentative.value,
             OlBusyStatus.olWorkingElsewhere.value,

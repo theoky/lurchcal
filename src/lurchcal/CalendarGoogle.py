@@ -76,11 +76,6 @@ class CalendarGoogle(Calendar):
         except HttpError as error:
             return []
 
-        # print(f"An error occurred: {error}")
-        # if not events:
-        # TODO log print("No upcoming events found.")
-        # return
-
     def isLurchCalAppt(self, appt):
         if appt:
             # Check if the event has extended properties
@@ -91,9 +86,13 @@ class CalendarGoogle(Calendar):
                     if appt['extendedProperties']['private']['lurchal'] == definitions.LURCHCAL_GUID_TEST:
                         return True
         return False
-    
+
 
     def convert_appointment(self, appt):
+        
+        if appt["transparency"] == "transparent":
+            return None
+        
         ga = GenAppointment()
         ga.summary = appt["summary"].lower()
 

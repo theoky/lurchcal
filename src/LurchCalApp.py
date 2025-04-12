@@ -3,7 +3,9 @@
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 """
 """
-
+import sys
+import ctypes
+    
 from threading import Thread, Lock
 from time import sleep
 from datetime import datetime
@@ -109,7 +111,7 @@ class LurchCalApp(App):
         self.tlock = Lock()
         self.parsed_config = {}
 
-        # TBD self.icon = 'myicon.png'
+        self.icon = 'assets/lurch.png'
 
         self.build_parsed_config()
 
@@ -200,7 +202,7 @@ class LurchCalApp(App):
             },
         )
 
-        # TBD File chooser, e.g. https://stackoverflow.com/questions/26028235/python-kivy-how-to-use-filechooser-access-files-outside-c-drive
+        # ENH File chooser, e.g. https://stackoverflow.com/questions/26028235/python-kivy-how-to-use-filechooser-access-files-outside-c-drive
         config.setdefaults(
             "zim",
             {
@@ -325,6 +327,12 @@ class LurchCalApp(App):
 
 
 if __name__ == "__main__":
+    
+    # crude workaround to make console window invisible on Windows
+    # https://stackoverflow.com/questions/41244474/kivy-how-to-disable-console
+    if sys.platform=="win32":
+        ctypes.windll.user32.ShowWindow( ctypes.windll.kernel32.GetConsoleWindow(), 0 )
+
     config = ConfigParser()
     config.read("lurchal.ini")
 
