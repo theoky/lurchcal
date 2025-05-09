@@ -150,7 +150,10 @@ class LurchCalApp(App):
         self.parsed_config["tags_future"] = self.split(
             self.config.get("tags", "tags_future")
         )
-
+        self.parsed_config["tags_to_block_time"] = self.split(
+            self.config.get("tags", "tags_to_block_time")
+        )
+        
         self.parsed_config["lunch_break_time"] = self.read_time(
             self.config.get("appt", "lunch_break_time")
         )
@@ -199,6 +202,7 @@ class LurchCalApp(App):
                 "tag_ignore_appt": "focus time, no ext.* appt.*, ^blocked$",
                 "tags_to_create_appt": "appt",
                 "tags_future": "future",
+                "tags_to_block_time": "block",
             },
         )
 

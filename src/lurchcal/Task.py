@@ -32,6 +32,7 @@ class Task(object):
         self.distribute_duration = True  # default
 
         self.create_appt_anyway = False
+        self.block_time = False
         
         self.source_name = source_name
         self.has_children = has_children

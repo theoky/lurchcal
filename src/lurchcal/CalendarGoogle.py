@@ -138,6 +138,9 @@ class CalendarGoogle(Calendar):
                 if st.task.create_appt_anyway:
                     transp ='opaque'
                     vis = 'default'
+
+                if st.task.block_time:
+                    transp ='opaque'
                     
                 # Create the event
                 event = {

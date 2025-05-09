@@ -142,6 +142,9 @@ class CalendarOutlook(Calendar):
                 appt.BusyStatus = OlBusyStatus.olFree.value
                 appt.Sensitivity = OlSensitivity.olPrivate.value
 
+            if st.task.block_time:
+                appt.BusyStatus = OlBusyStatus.olBusy.value
+                
             prop = appt.UserProperties.Add("lurchal", OlUserPropertyType.olText.value)
             prop.Value = definitions.LURCHCAL_GUID_TEST
 

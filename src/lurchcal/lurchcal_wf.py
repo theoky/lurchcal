@@ -105,6 +105,8 @@ def build_tree(tasks):
             n.parent = p
 
     distribute_information(root, [], None)
+    
+    # TBD remove tasks with only subtasks -> may need modified sql statement
 
     return root
 
@@ -256,6 +258,9 @@ def create_task_appointments(cb, create_appts, config, parsed_config):
     for t in scheduled_tasks:
         if any(e in t.task.tags for e in parsed_config["tags_to_create_appt"]): # parsed_config["tags_to_create_appt"] in t.task.tags:
             t.task.create_appt_anyway = True
+            
+        if any(e in t.task.tags for e in parsed_config["tags_to_block_time"]): 
+            t.task.block_time = True
             
     # add new appointments
     zim_task_book, remaining_zim_tasks = filter_tasks(

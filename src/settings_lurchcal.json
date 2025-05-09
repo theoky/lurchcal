@@ -116,6 +116,12 @@
       "desc": "",
       "section": "tags",
       "key": "tags_future" },      
+  
+    { "type": "string",
+      "title": "Tags for booking time for appointment",
+      "desc": "",
+      "section": "tags",
+      "key": "tags_to_block_time" },      
 
 
     { "type": "title",
