@@ -112,6 +112,7 @@ class LurchCalApp(App):
         self.parsed_config = {}
 
         self.icon = 'assets/lurch.png'
+        self.title = "LurchCal (0.2.0)"
 
         self.build_parsed_config()
 
