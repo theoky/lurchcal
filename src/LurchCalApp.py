@@ -44,57 +44,66 @@ kv = """
     halign: 'left'
     valign: 'middle'
     
-BoxLayout:
-    orientation: 'vertical'
+FloatLayout:
+    Image:
+        source: 'assets/lurch_bkgnd.png'
+        allow_stretch: False
+        keep_ratio: True
+        size_hint: 1, 1
+        pos_hint: {"x": 0, "y": 0}
     BoxLayout:
-        size_hint: 1, .1
+        orientation: 'vertical'
+        size_hint: 1, 1
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint: 1, .1
+            Button:
+                text: 'Create task list page in ZIM'
+                on_release: app.start_task_creation()
+                id: create
+            Button:
+                text: 'Create task appointments in calendar'
+                on_release: app.start_task_creation_appts()
+                id: create_appts
+            Button:
+                text: 'Remove LurchCal appts. from cal.'
+                on_release: app.start_appt_removal()
+                id: remove_appts   
         Button:
-            text: 'Create task list page in ZIM'
-            on_release: app.start_task_creation()
-            id: create
-        Button:
-            text: 'Create task appointments in calendar'
-            on_release: app.start_task_creation_appts()
-            id: create_appts
-        Button:
-            text: 'Remove LurchCal appts. from cal.'
-            on_release: app.start_appt_removal()
-            id: remove_appts   
-    Button:
-        text: 'Configure app (or press F1)'
-        size: self.texture_size
-        size_hint: 1, .1
-        on_release: app.open_settings()
-    Label:
-        id: label
-        size: self.texture_size
-        size_hint: 1, .1
-        text: 'Progress:'
-        default_size: None, dp(32)
-    ProgressBar:
-        id: progress
-        value: 0
-        max: 6
-        size_hint: 1, .05
-        default_size: None, dp(16)
-    Label:
-        size: self.texture_size
-        size_hint: 1, .1
-        text: 'Unscheduled tasks'      
-        default_size: None, dp(32)  
-    RecycleView:
-        id: rv
-        scroll_type: ['bars', 'content']
-        scroll_wheel_distance: dp(114)
-        bar_width: dp(10)
-        viewclass: 'LeftLabel'
-        RecycleBoxLayout:
+            text: 'Configure app (or press F1)'
+            size: self.texture_size
+            size_hint: 1, .1
+            on_release: app.open_settings()
+        Label:
+            id: label
+            size: self.texture_size
+            size_hint: 1, .1
+            text: 'Progress:'
             default_size: None, dp(32)
-            default_size_hint: 1, None
-            size_hint_y: None
-            height: self.minimum_height
-            orientation: 'vertical'
-            spacing: dp(0)
+        ProgressBar:
+            id: progress
+            value: 0
+            max: 6
+            size_hint: 1, .05
+            default_size: None, dp(16)
+        Label:
+            size: self.texture_size
+            size_hint: 1, .1
+            text: 'Unscheduled tasks'      
+            default_size: None, dp(32)  
+        RecycleView:
+            id: rv
+            scroll_type: ['bars', 'content']
+            scroll_wheel_distance: dp(114)
+            bar_width: dp(10)
+            viewclass: 'LeftLabel'
+            RecycleBoxLayout:
+                default_size: None, dp(32)
+                default_size_hint: 1, None
+                size_hint_y: None
+                height: self.minimum_height
+                orientation: 'vertical'
+                spacing: dp(0)
 """
 
 class LeftLabel (RecycleDataViewBehavior, Label):
@@ -112,7 +121,7 @@ class LurchCalApp(App):
         self.parsed_config = {}
 
         self.icon = 'assets/lurch.png'
-        self.title = "LurchCal (0.2.0)"
+        self.title = "LurchCal (0.2.1)"
 
         self.build_parsed_config()
 
