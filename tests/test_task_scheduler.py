@@ -248,5 +248,249 @@ class TestTaskScheduler(unittest.TestCase):
         self.assertEqual(len(unscheduled), 0)
         self.assertEqual(scheduled[0].start.date(), dt.date(2024, 1, 3))
 
+
+class TestRecurrenceGeneration(unittest.TestCase):
+    def setUp(self):
+        self.config = ConfigParser() 
+        self.config.add_section('appt')
+        self.config.set('appt', 'hours_per_day', '8') 
+        self.config.set('appt', 'lunch_break', '30') # Required by _schedule_breaks
+        self.config.set('appt', 'short_break', '15') # Required by _schedule_breaks
+        self.config.set('appt', 'days_for_scheduling', '7') # Required by schedule_everything internal logic
+        # Add other minimal required settings if any more errors pop up
+        # self.config.set('appt', 'short_break_after_ilm', '1') # Not strictly needed for this test path
+        # self.config.set('appt', 'min_task_len_4_appt', '15') # Not strictly needed for this test path
+
+
+        self.parsed_config = { # Basic parsed_config
+            'start_of_day': dt.time(9, 0), 
+            'lunch_break_time': dt.time(12,0), 
+            'before_noon_break_time': dt.time(10,0),
+            # Add other minimal required settings if any more errors pop up
+            'tag_order': [], 
+            'tag_ignore_appt': [],
+            'tags_future': [],
+            'tags_to_create_appt': []
+        }
+        self.scheduler = TaskScheduler(self.config, self.parsed_config)
+        self.scheduling_start_date = dt.date(2024, 1, 1)
+        self.scheduling_end_date = dt.date(2024, 3, 31)
+
+    def _create_base_task(self, description="Recurring Task", original_start_str="2024-01-01"):
+        task = Task(description, prio=1, duration=60, start_date=original_start_str)
+        task.is_recurring = True
+        task.original_start_date = dt.date.fromisoformat(original_start_str)
+        return task
+
+    def test_generate_daily_instances_simple(self):
+        task = self._create_base_task()
+        task.recurrence_rule = "daily"
+        
+        instances = self.scheduler._generate_recurrence_instances(task, self.scheduling_start_date, dt.date(2024, 1, 5))
+        self.assertEqual(len(instances), 5)
+        self.assertEqual(instances[0].start_date, dt.date(2024, 1, 1))
+        self.assertEqual(instances[4].start_date, dt.date(2024, 1, 5))
+        self.assertFalse(instances[0].is_recurring)
+        self.assertEqual(instances[0].description, "Recurring Task [R]")
+
+    def test_generate_daily_instances_with_interval(self):
+        task = self._create_base_task()
+        task.recurrence_rule = "daily"
+        task.recurrence_interval = 2
+        
+        instances = self.scheduler._generate_recurrence_instances(task, self.scheduling_start_date, dt.date(2024, 1, 7))
+        self.assertEqual(len(instances), 4) # Jan 1, 3, 5, 7
+        self.assertEqual(instances[0].start_date, dt.date(2024, 1, 1))
+        self.assertEqual(instances[1].start_date, dt.date(2024, 1, 3))
+
+    def test_generate_daily_instances_with_count(self):
+        task = self._create_base_task()
+        task.recurrence_rule = "daily"
+        task.recurrence_count = 3
+        
+        instances = self.scheduler._generate_recurrence_instances(task, self.scheduling_start_date, self.scheduling_end_date)
+        self.assertEqual(len(instances), 3)
+        self.assertEqual(instances[2].start_date, dt.date(2024, 1, 3))
+
+    def test_generate_daily_instances_with_until(self):
+        task = self._create_base_task()
+        task.recurrence_rule = "daily"
+        task.recurrence_end_date = dt.date(2024, 1, 4)
+        
+        instances = self.scheduler._generate_recurrence_instances(task, self.scheduling_start_date, self.scheduling_end_date)
+        self.assertEqual(len(instances), 4) # Jan 1, 2, 3, 4
+        self.assertEqual(instances[-1].start_date, dt.date(2024, 1, 4))
+
+    def test_generate_weekly_instances_simple(self):
+        # Starts on Monday 2024-01-01
+        task = self._create_base_task(original_start_str="2024-01-01") 
+        task.recurrence_rule = "weekly"
+        
+        # Schedule for 3 weeks
+        instances = self.scheduler._generate_recurrence_instances(task, dt.date(2024, 1, 1), dt.date(2024, 1, 21))
+        self.assertEqual(len(instances), 3)
+        self.assertEqual(instances[0].start_date, dt.date(2024, 1, 1)) # Mon
+        self.assertEqual(instances[1].start_date, dt.date(2024, 1, 8)) # Mon
+        self.assertEqual(instances[2].start_date, dt.date(2024, 1, 15)) # Mon
+
+    def test_generate_weekly_instances_on_specific_day(self):
+        task = self._create_base_task(original_start_str="2024-01-01") # Monday
+        task.recurrence_rule = "weekly"
+        task.recurrence_on = "WED" # Should generate Wednesdays
+        
+        instances = self.scheduler._generate_recurrence_instances(task, dt.date(2024, 1, 1), dt.date(2024, 1, 21))
+        self.assertEqual(len(instances), 3)
+        self.assertEqual(instances[0].start_date, dt.date(2024, 1, 3)) # First WED
+        self.assertEqual(instances[1].start_date, dt.date(2024, 1, 10))
+        self.assertEqual(instances[2].start_date, dt.date(2024, 1, 17))
+
+    def test_generate_weekly_instances_interval_count_until(self):
+        task = self._create_base_task(original_start_str="2024-01-01") # Monday
+        task.recurrence_rule = "weekly"
+        task.recurrence_interval = 2 # Every 2 weeks
+        task.recurrence_on = "FRI"
+        task.recurrence_count = 2 
+        
+        # Window large enough not to interfere with count
+        instances = self.scheduler._generate_recurrence_instances(task, dt.date(2024, 1, 1), dt.date(2024, 2, 28)) 
+        self.assertEqual(len(instances), 2)
+        self.assertEqual(instances[0].start_date, dt.date(2024, 1, 5)) # First Friday
+        self.assertEqual(instances[1].start_date, dt.date(2024, 1, 19)) # Second Friday (2 weeks after 1st Fri)
+
+        task.recurrence_count = None
+        task.recurrence_end_date = dt.date(2024, 1, 20)
+        instances_until = self.scheduler._generate_recurrence_instances(task, dt.date(2024, 1, 1), dt.date(2024, 2, 28))
+        self.assertEqual(len(instances_until), 2) # Jan 5, Jan 19. Jan 20 is a Saturday.
+        self.assertEqual(instances_until[0].start_date, dt.date(2024, 1, 5))
+        self.assertEqual(instances_until[1].start_date, dt.date(2024, 1, 19))
+
+
+    def test_generate_monthly_instances_day_number(self):
+        task = self._create_base_task(original_start_str="2024-01-10")
+        task.recurrence_rule = "monthly"
+        task.recurrence_on = "15" # 15th of every month
+        
+        instances = self.scheduler._generate_recurrence_instances(task, dt.date(2024, 1, 1), dt.date(2024, 3, 31))
+        self.assertEqual(len(instances), 3)
+        self.assertEqual(instances[0].start_date, dt.date(2024, 1, 15))
+        self.assertEqual(instances[1].start_date, dt.date(2024, 2, 15))
+        self.assertEqual(instances[2].start_date, dt.date(2024, 3, 15))
+
+    def test_generate_monthly_instances_first_weekday(self):
+        task = self._create_base_task(original_start_str="2024-01-01")
+        task.recurrence_rule = "monthly"
+        task.recurrence_on = "first MON"
+        
+        instances = self.scheduler._generate_recurrence_instances(task, dt.date(2024, 1, 1), dt.date(2024, 3, 31))
+        self.assertEqual(len(instances), 3)
+        self.assertEqual(instances[0].start_date, dt.date(2024, 1, 1)) # Jan 1 is Mon
+        self.assertEqual(instances[1].start_date, dt.date(2024, 2, 5)) # First Mon in Feb
+        self.assertEqual(instances[2].start_date, dt.date(2024, 3, 4)) # First Mon in Mar
+
+    def test_generate_monthly_instances_last_weekday(self):
+        task = self._create_base_task(original_start_str="2024-01-01")
+        task.recurrence_rule = "monthly"
+        task.recurrence_on = "last FRI"
+        task.recurrence_count = 2
+        
+        instances = self.scheduler._generate_recurrence_instances(task, dt.date(2024, 1, 1), dt.date(2024, 3, 31))
+        self.assertEqual(len(instances), 2)
+        self.assertEqual(instances[0].start_date, dt.date(2024, 1, 26)) # Last Fri in Jan
+        self.assertEqual(instances[1].start_date, dt.date(2024, 2, 23)) # Last Fri in Feb (29th is Thu)
+
+    def test_instance_properties_and_non_recursion(self):
+        task = self._create_base_task(description="Test Desc", original_start_str="2024-01-01")
+        task.recurrence_rule = "daily"
+        task.recurrence_count = 1
+        task.tags = ["test", "important"]
+        
+        instances = self.scheduler._generate_recurrence_instances(task, self.scheduling_start_date, self.scheduling_end_date)
+        self.assertEqual(len(instances), 1)
+        instance = instances[0]
+        
+        self.assertEqual(instance.description, "Test Desc [R]")
+        self.assertEqual(instance.prio, 1)
+        self.assertEqual(instance.duration, 60)
+        self.assertIn("test", instance.tags)
+        self.assertIn("important", instance.tags)
+        
+        self.assertFalse(instance.is_recurring)
+        self.assertIsNone(instance.recurrence_rule)
+        self.assertEqual(instance.start_date, dt.date(2024, 1, 1))
+        self.assertEqual(instance.due_date, dt.date(2024, 1, 1)) # As per current implementation
+
+    def test_no_instances_if_not_recurring(self):
+        task = self._create_base_task()
+        task.is_recurring = False
+        instances = self.scheduler._generate_recurrence_instances(task, self.scheduling_start_date, self.scheduling_end_date)
+        self.assertEqual(len(instances), 0)
+
+    def test_no_instances_if_no_original_start_date(self):
+        task = self._create_base_task()
+        task.recurrence_rule = "daily"
+        task.original_start_date = None # Problem
+        instances = self.scheduler._generate_recurrence_instances(task, self.scheduling_start_date, self.scheduling_end_date)
+        self.assertEqual(len(instances), 0)
+        
+    def test_scheduling_window_filtering(self):
+        task = self._create_base_task(original_start_str="2023-12-25") # Starts before window
+        task.recurrence_rule = "daily"
+        task.recurrence_interval = 1
+        
+        # Window: 2024-01-01 to 2024-01-03
+        instances = self.scheduler._generate_recurrence_instances(task, dt.date(2024,1,1), dt.date(2024,1,3))
+        self.assertEqual(len(instances), 3)
+        self.assertEqual(instances[0].start_date, dt.date(2024,1,1))
+        self.assertEqual(instances[-1].start_date, dt.date(2024,1,3))
+
+        # Task ends before window
+        task2 = self._create_base_task(original_start_str="2023-12-01")
+        task2.recurrence_rule = "daily"
+        task2.recurrence_end_date = dt.date(2023,12,5)
+        instances2 = self.scheduler._generate_recurrence_instances(task2, dt.date(2024,1,1), dt.date(2024,1,3))
+        self.assertEqual(len(instances2), 0)
+
+    @patch('lurchcal.TaskScheduler.TaskScheduler._schedule_tasks_by_priority')
+    def test_schedule_everything_expands_recurring_tasks(self, mock_schedule_by_priority):
+        # Mock _schedule_tasks_by_priority to not actually schedule, just capture tasks
+        mock_schedule_by_priority.return_value = ([], []) # Scheduled, Unscheduled
+
+        recurring_daily = self._create_base_task("Daily Task", "2024-01-01")
+        recurring_daily.recurrence_rule = "daily"
+        recurring_daily.recurrence_count = 2 # Jan 1, Jan 2
+
+        non_recurring = Task("Simple Task", start_date="2024-01-01")
+
+        tasks_input = [recurring_daily, non_recurring]
+        
+        # schedule_everything sets up a 7-day window from start_date
+        # For start_date 2024-01-01, this means act_start_date is 2024-01-01, end_date is 2024-01-08
+        # Mock calendar and appointments are needed for schedule_everything
+        mock_cal = Mock()
+        
+        self.scheduler.schedule_everything(mock_cal, dt.date(2024,1,1), tasks_input, [])
+        
+        self.assertTrue(mock_schedule_by_priority.called)
+        args, _ = mock_schedule_by_priority.call_args
+        expanded_tasks_received = args[0]
+        
+        self.assertEqual(len(expanded_tasks_received), 3) # 2 instances + 1 non-recurring
+        
+        # Check instance descriptions for the marker
+        daily_task_instances = [t for t in expanded_tasks_received if t.description == "Daily Task [R]"]
+        self.assertEqual(len(daily_task_instances), 2)
+
+        non_recurring_found = any(t.description == "Simple Task" for t in expanded_tasks_received)
+        self.assertTrue(non_recurring_found)
+
+        for task in expanded_tasks_received:
+            if task.description == "Daily Task [R]": # Check modified description
+                self.assertFalse(task.is_recurring)
+            elif task.description == "Simple Task": # Non-recurring task's description unchanged
+                self.assertFalse(task.is_recurring) 
+            # else: # This would catch unexpected tasks if any
+                # self.fail(f"Unexpected task description: {task.description}")
+
+
 if __name__ == "__main__":
     unittest.main() 
