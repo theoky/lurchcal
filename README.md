@@ -46,6 +46,12 @@ See [documentation.md](documentation.md) in this directory.
 - install requirements
 - start LurchCalApp.py
 
+## Testing
+
+The test suite uses pytest with per-test SQLite databases generated from deterministic fixtures to avoid file-locking issues on Windows. Fixtures in `tests/conftest.py` provide `db_path`, `db_conn`, `ro_conn`, and `engine`, building a fresh database via `tests/zim_test_utils.initialize_zim_sqlite` for every test or worker. Because the schema is synthesized on demand, no binary SQLite file is stored in the repository. Connections and SQLAlchemy engines are closed and disposed during teardown, which is essential on Windows for releasing handles before temporary files are removed.
+
+Run the suite locally with `pytest -q` or in parallel with `pytest -q -n auto` (requires `pytest-xdist`). When adding database-dependent tests, depend on the fixtures instead of opening the fixture file directly.
+
 ## Technical Info
 
 - Communication with Outlook is done via MAPI.
