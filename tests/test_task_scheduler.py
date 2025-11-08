@@ -3,14 +3,10 @@
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 """
 """
-import tempfile
 import unittest
-from pathlib import Path
 from unittest.mock import Mock
 
 import datetime as dt
-import time # so we can override time.time
-
 from kivy.config import ConfigParser
 
 from lurchcal.Task import Task
@@ -21,38 +17,40 @@ from lurchcal.GenAppointment import GenAppointment
 from zoneinfo import ZoneInfo
 import time_machine
 
-from tests.zim_test_utils import initialize_zim_sqlite
-
 at_tz = ZoneInfo("Europe/Vienna")
 
-mock_time = Mock()
-mock_time.return_value = time.mktime(dt.datetime(2024, 3, 31, 22, 6).timetuple())
+def make_scheduler_config():
+    config = ConfigParser()
+    config.add_section('appt')
+    config.set('appt', 'hours_per_day', '8')
+    config.set('appt', 'lunch_break', '30')
+    config.set('appt', 'short_break', '15')
+    config.set('appt', 'short_break_after_ilm', '1')
+    config.set('appt', 'days_for_scheduling', '7')
+    config.set('appt', 'min_task_len_4_appt', '15')
+    config.add_section('tasks')
+    config.set('tasks', 'def_task_len', '30')
+    config.set('tasks', 'min_task_split', '60')
+    return config
+
+def make_parsed_config():
+    return {
+        'start_of_day': dt.time(9, 0),
+        'lunch_break_time': dt.time(12, 0),
+        'before_noon_break_time': dt.time(10, 0),
+        'tag_order': ['priority1', 'priority2'],
+        'tag_ignore_appt': ['ignore_me'],
+        'tags_future': ['future'],
+        'tags_to_create_appt': ['appt'],
+    }
 
 class TestTaskScheduler(unittest.TestCase):
     def setUp(self):
         # Create a mock config
-        self.config = ConfigParser()
-        self.config.add_section('appt')
-        self.config.set('appt', 'hours_per_day', '8')
-        self.config.set('appt', 'lunch_break', '30')
-        self.config.set('appt', 'short_break', '15')
-        self.config.set('appt', 'short_break_after_ilm', '1')
-        self.config.set('appt', 'days_for_scheduling', '7')
-        self.config.set('appt', 'min_task_len_4_appt', '15')
-        self.config.add_section('tasks')
-        self.config.set('tasks', 'def_task_len', '30')
-        self.config.set('tasks', 'min_task_split', '60')
+        self.config = make_scheduler_config()
 
         # Create parsed config
-        self.parsed_config = {
-            'start_of_day': dt.time(9, 0),
-            'lunch_break_time': dt.time(12, 0),
-            'before_noon_break_time': dt.time(10, 0),
-            'tag_order': ['priority1', 'priority2'],
-            'tag_ignore_appt': ['ignore_me'],
-            'tags_future': ['future'],
-            'tags_to_create_appt': ['appt']
-        }
+        self.parsed_config = make_parsed_config()
 
         self.scheduler = TaskScheduler(self.config, self.parsed_config)
 
@@ -207,41 +205,6 @@ class TestTaskScheduler(unittest.TestCase):
         first_day = self.scheduler.days[start_date]
         self.assertEqual(len(first_day.free_time_blocks), 2)  # Should be split into two blocks
 
-    def test_schedule_tasks_from_zim_fixture(self):
-        """High priority tasks from a Zim database are scheduled before lower priority work."""
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            db_path = Path(tmpdir) / "fixture.sqlite"
-            initialize_zim_sqlite(db_path)
-
-            parser = TaskParser(self.config)
-            tasks = parser.parse_zim_tasks(str(db_path))
-
-        start_date = dt.date(2024, 1, 1)
-        end_date = start_date + dt.timedelta(days=7)
-        act_start_date = self.scheduler._prepare_days(start_date, end_date)
-
-        scheduled, unscheduled = self.scheduler._schedule_tasks_by_priority(
-            tasks, act_start_date, end_date
-        )
-
-        descriptions = [item.task.description for item in scheduled]
-        self.assertEqual(
-            descriptions,
-            [
-                "st: Long Focus Task ~2h~ @Deep",
-                "Long Focus Task ~2h~ @Deep",
-                "Write summary",
-            ],
-        )
-
-        start_times = [item.start.time() for item in scheduled]
-        self.assertEqual(start_times, [dt.time(9, 0), dt.time(10, 0), dt.time(11, 0)])
-
-        self.assertEqual([item.task.duration for item in scheduled], [60, 60, 30])
-        self.assertEqual([item.task.subid for item in scheduled], [1, 0, 0])
-        self.assertEqual(unscheduled, [])
-
     def test_schedule_tasks_by_priority(self):
         """Test scheduling tasks with different priorities and tags"""
         start_date = dt.date(2024, 1, 1)
@@ -291,5 +254,37 @@ class TestTaskScheduler(unittest.TestCase):
         self.assertEqual(len(unscheduled), 0)
         self.assertEqual(scheduled[0].start.date(), dt.date(2024, 1, 3))
 
+
+
+def test_schedule_tasks_from_zim_fixture(db_path):
+    """High priority tasks from a Zim database are scheduled before lower priority work."""
+
+    config = make_scheduler_config()
+    scheduler = TaskScheduler(config, make_parsed_config())
+    parser = TaskParser(config)
+    tasks = parser.parse_zim_tasks(str(db_path))
+
+    start_date = dt.date(2024, 1, 1)
+    end_date = start_date + dt.timedelta(days=7)
+    act_start_date = scheduler._prepare_days(start_date, end_date)
+
+    scheduled, unscheduled = scheduler._schedule_tasks_by_priority(
+        tasks, act_start_date, end_date
+    )
+
+    descriptions = [item.task.description for item in scheduled]
+    assert descriptions == [
+        "st: Long Focus Task ~2h~ @Deep",
+        "Long Focus Task ~2h~ @Deep",
+        "Write summary",
+    ]
+
+    start_times = [item.start.time() for item in scheduled]
+    assert start_times == [dt.time(9, 0), dt.time(10, 0), dt.time(11, 0)]
+
+    assert [item.task.duration for item in scheduled] == [60, 60, 30]
+    assert [item.task.subid for item in scheduled] == [1, 0, 0]
+    assert unscheduled == []
+
 if __name__ == "__main__":
-    unittest.main() 
+    unittest.main()

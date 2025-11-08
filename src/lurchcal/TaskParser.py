@@ -28,7 +28,7 @@ class TaskParser:
         # _tag_re = re.compile(r'(?<!\S)@(\w+)\b', re.U)
     
     def parse_task_description(self, description):
-        duration, is_default, assign_duration = self._parse_duration(description)
+        duration, is_default, assign_duration, _ = self._parse_duration(description)
         tags = self._parse_tags(description)
         return duration, is_default, assign_duration, tags
         
@@ -129,4 +129,4 @@ class TaskParser:
                 # task to be scheduled
                 res_tasks.append(task)
 
-        return res_tasks 
+        return res_tasks
