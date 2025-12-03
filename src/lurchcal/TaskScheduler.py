@@ -73,7 +73,7 @@ class TaskScheduler:
         return res_scheduled_tasks, not_scheduled_tasks
         
     def _prepare_days(self, start_date, end_date):
-        day_count = 7
+        day_count = (end_date - start_date).days
         self.days = {}  # dict[date, Day]
         act_start_date = None
 
@@ -116,22 +116,24 @@ class TaskScheduler:
             for r in self.parsed_config["tag_ignore_appt"]:
                 if re.search(r, appt.summary, re.IGNORECASE):
                     ignore = True
+                    break
 
             if ignore:
                 continue
 
             # handle also multi day appointments
-            for day in self._daterange(
-                appt.parsedDateTime_start.date(), appt.parsedDateTime_end.date()
-            ):
-                d = self.days.get(day, None)
-                if d:
-                    d.block_time(
-                        time(
-                            appt.parsedDateTime_start.hour, appt.parsedDateTime_start.minute
-                        ),
-                        appt.duration,
-                    )
+            if appt.all_day_event:
+                for day in self._daterange(
+                    appt.parsedDateTime_start.date(), appt.parsedDateTime_end.date(), False
+                ):
+                    d = self.days.get(day, None)
+                    if d:
+                        d.block_time(
+                            time(
+                                appt.parsedDateTime_start.hour, appt.parsedDateTime_start.minute
+                            ),
+                            appt.duration,
+                        )
         
     def _schedule_breaks(self):
         res_scheduled_tasks = []
@@ -251,13 +253,16 @@ class TaskScheduler:
         return res
 
     # https://stackoverflow.com/questions/1060279/iterating-through-a-range-of-dates-in-python
-    def _daterange(self, start_date: date, end_date: date):
-        days = int((end_date - start_date).days) + 1
+    def _daterange(self, start_date: date, end_date: date, incl=True):
+        days = int((end_date - start_date).days)
+        if incl:
+            days += 1
+            
         for n in range(days):
             yield start_date + timedelta(n)
 
-    def schedule_everything(self, cal, start_date, tasks, appointments, start_time=None):
-        end_date = start_date + timedelta(days=7)
+    def schedule_everything(self, cal, start_date, tasks, appointments, start_time=None, days=5):
+        end_date = start_date + timedelta(days=days)
         
         act_start_date = self._prepare_days(start_date, end_date)
         self._schedule_calendar_appointments(cal, appointments)
