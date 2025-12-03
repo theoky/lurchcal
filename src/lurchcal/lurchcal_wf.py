@@ -213,6 +213,7 @@ def create_task_appointments(cb, create_appts, config, parsed_config):
         tagged_task_list,
         appointments,
         start_time=datetime.now().time(),
+        days=config.getint("appt", "days_for_scheduling")
     )
     
     
