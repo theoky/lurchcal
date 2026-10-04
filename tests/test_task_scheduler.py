@@ -7,12 +7,12 @@ import unittest
 from unittest.mock import Mock
 
 import datetime as dt
-from kivy.config import ConfigParser
 
 from lurchcal.Task import Task
 from lurchcal.TaskParser import TaskParser
 from lurchcal.TaskScheduler import TaskScheduler
 from lurchcal.GenAppointment import GenAppointment
+from lurchcal.settings import AppSettings, AppointmentSettings, TaskSettings, TagSettings, ZimSettings
 
 from zoneinfo import ZoneInfo
 import time_machine
@@ -20,44 +20,23 @@ import time_machine
 at_tz = ZoneInfo("Europe/Vienna")
 
 def make_scheduler_config():
-    config = ConfigParser()
-    config.add_section('appt')
-    config.set('appt', 'hours_per_day', '8')
-    config.set('appt', 'lunch_break', '30')
-    config.set('appt', 'short_break', '15')
-    config.set('appt', 'short_break_after_ilm', '1')
-    config.set('appt', 'days_for_scheduling', '7')
-    config.set('appt', 'min_task_len_4_appt', '15')
-    config.add_section('tasks')
-    config.set('tasks', 'def_task_len', '30')
-    config.set('tasks', 'min_task_split', '60')
-    return config
-
-def make_parsed_config():
-    return {
-        'start_of_day': dt.time(9, 0),
-        'lunch_break_time': dt.time(12, 0),
-        'before_noon_break_time': dt.time(10, 0),
-        'tag_order': ['priority1', 'priority2'],
-        'tag_ignore_appt': ['ignore_me'],
-        'tags_future': ['future'],
-        'tags_to_create_appt': ['appt'],
-    }
+    return AppSettings(
+        appt=AppointmentSettings(15, 30, 15, 1, 7, dt.time(12), dt.time(10), dt.time(9), 8, 'outlook'),
+        tasks=TaskSettings(30, 60),
+        tags=TagSettings('ilm', ('priority1', 'priority2'), (), ('ignore_me',), ('appt',), ('future',), ('block',)),
+        zim=ZimSettings('', ''),
+    )
 
 class TestTaskScheduler(unittest.TestCase):
     def setUp(self):
-        # Create a mock config
+        # Create typed settings
         self.config = make_scheduler_config()
 
-        # Create parsed config
-        self.parsed_config = make_parsed_config()
-
-        self.scheduler = TaskScheduler(self.config, self.parsed_config)
+        self.scheduler = TaskScheduler(self.config)
 
     def test_initialization(self):
         """Test that TaskScheduler initializes correctly with config and parsed_config"""
-        self.assertIsNotNone(self.scheduler.config)
-        self.assertIsNotNone(self.scheduler.parsed_config)
+        self.assertIsNotNone(self.scheduler.settings)
         self.assertEqual(self.scheduler.days, {})
 
     def test_prepare_days(self):
@@ -194,6 +173,7 @@ class TestTaskScheduler(unittest.TestCase):
         mock_appt.parsedDateTime_start = dt.datetime(2024, 1, 1, 10, 0)
         mock_appt.parsedDateTime_end = dt.datetime(2024, 1, 1, 11, 0)
         mock_appt.duration = 60
+        mock_appt.all_day_event = False
 
         # Create a mock calendar
         mock_cal = Mock()
@@ -201,9 +181,13 @@ class TestTaskScheduler(unittest.TestCase):
 
         self.scheduler._schedule_calendar_appointments(mock_cal, [mock_appt])
 
-        # Check that the time is blocked
+        # Current behavior blocks all-day appointments only.
         first_day = self.scheduler.days[start_date]
-        self.assertEqual(len(first_day.free_time_blocks), 2)  # Should be split into two blocks
+        self.assertEqual(len(first_day.free_time_blocks), 1)
+
+        mock_appt.all_day_event = False
+        self.scheduler._schedule_calendar_appointments(mock_cal, [mock_appt])
+        self.assertEqual(len(first_day.free_time_blocks), 1)
 
     def test_schedule_tasks_by_priority(self):
         """Test scheduling tasks with different priorities and tags"""
@@ -260,7 +244,7 @@ def test_schedule_tasks_from_zim_fixture(db_path):
     """High priority tasks from a Zim database are scheduled before lower priority work."""
 
     config = make_scheduler_config()
-    scheduler = TaskScheduler(config, make_parsed_config())
+    scheduler = TaskScheduler(config)
     parser = TaskParser(config)
     tasks = parser.parse_zim_tasks(str(db_path))
 

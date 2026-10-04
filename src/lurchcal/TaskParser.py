@@ -6,18 +6,23 @@ Task parser for handling ZIM tasks and task descriptions.
 """
 import re
 import sqlite3
+import logging
 from copy import deepcopy
 from durations_nlp import Duration
-
-from kivy.config import Config
-from kivy.logger import Logger, LOG_LEVELS
 
 from lurchcal.Task import Task
 
 
+logger = logging.getLogger(__name__)
+
+
 class TaskParser:
-    def __init__(self, config):
-        self.config = config
+    def __init__(self, settings):
+        if not hasattr(settings, "tasks"):
+            from lurchcal.settings import settings_from_config
+
+            settings = settings_from_config(settings)
+        self.settings = settings
         self.tag_re = r"\@(\w+)"
         
     def parse_zim_tasks(self, path_to_zim_db):
@@ -34,7 +39,7 @@ class TaskParser:
         
     def _parse_duration(self, description):
         d = description.split("~")
-        duration = self.config.getint("tasks", "def_task_len")
+        duration = self.settings.tasks.def_task_len
         is_default = True
         assign_duration = False
         distribute_duration = True
@@ -111,17 +116,17 @@ class TaskParser:
                     t["haschildren"],
                     t["id"],
                     t["parent"],
-                    self.config.getint("tasks", "def_task_len"),
+                    self.settings.tasks.def_task_len,
                 )
 
                 # split Tasks >1h into subtasks by creating tasks < 1h
                 subid = 1
-                while task.duration > self.config.getint("tasks", "min_task_split"):
+                while task.duration > self.settings.tasks.min_task_split:
                     st = deepcopy(task)
                     st.description = "st: " + task.description
-                    st.duration = self.config.getint("tasks", "min_task_split")
+                    st.duration = self.settings.tasks.min_task_split
                     st.subid = subid
-                    task.duration -= self.config.getint("tasks", "min_task_split")
+                    task.duration -= self.settings.tasks.min_task_split
                     subid += 1
 
                     res_tasks.append(st)

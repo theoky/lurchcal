@@ -4,6 +4,7 @@
 """
 """
 import datetime
+import logging
 import os.path
 from dateutil import parser
 
@@ -17,7 +18,8 @@ from lurchcal.Calendar import Calendar
 from lurchcal.GenAppointment import GenAppointment
 from lurchcal import definitions
 
-from kivy.logger import Logger
+logger = logging.getLogger(__name__)
+
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ["https://www.googleapis.com/auth/calendar.events"]
@@ -176,7 +178,7 @@ class CalendarGoogle(Calendar):
             batch.execute()
                 
         except HttpError as error:
-            Logger.error(f"An error occurred: {error}")
+            logger.error("An error occurred: %s", error)
             
         return None
 
@@ -198,12 +200,12 @@ class CalendarGoogle(Calendar):
                         request_id=event_id
                     )
                 batch.execute()
-                Logger.info(f"Deleted {len(event_ids_to_delete)} lurchcal events.")
+                logger.info("Deleted %s lurchcal events.", len(event_ids_to_delete))
             else:
-                Logger.info("No lurchcal events found to delete.")
+                logger.info("No lurchcal events found to delete.")
                 
         except HttpError as error:
-            Logger.error(f"An error occurred while deleting events: {error}")
+            logger.error("An error occurred while deleting events: %s", error)
         
         return None
     

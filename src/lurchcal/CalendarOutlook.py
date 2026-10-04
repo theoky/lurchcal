@@ -4,6 +4,7 @@
 """
 """
 import win32com.client
+import logging
 
 from datetime import timedelta, datetime, timezone
 
@@ -16,7 +17,7 @@ from lurchcal import definitions
 
 from lurchcal.outlook_enums import *
 
-from kivy.logger import Logger
+logger = logging.getLogger(__name__)
 
 
 class CalendarOutlook(Calendar):
@@ -31,7 +32,7 @@ class CalendarOutlook(Calendar):
             )
 
         except Exception as err:
-            Logger.error("Outlook error, possibly not installed?", exc_info=err)
+            logger.error("Outlook error, possibly not installed?", exc_info=err)
             raise
 
         return
@@ -86,7 +87,7 @@ class CalendarOutlook(Calendar):
         ga.all_day_event = appt.AllDayEvent
         ga.duration = appt.Duration
 
-        Logger.debug(
+        logger.debug(
             "CalendarOutlook.py: convert_appointment: {0}, {1}, {2}".format(
                 ga.summary, ga.parsedDateTime_start, ga.parsedDateTime_end
             )
@@ -156,14 +157,14 @@ class CalendarOutlook(Calendar):
         todelete = []
         for indx, a in enumerate(appts):
             if self.isLurchCalAppt(a):
-                Logger.debug("processing {0}, {1}".format(str(a.Subject), str(a.Start)))
+                logger.debug("processing %s, %s", str(a.Subject), str(a.Start))
                 todelete.append(indx + 1)
 
         if todelete:
             todelete.reverse()
 
             for i in todelete:
-                Logger.debug("deleting {0}, {1}".format(i, str(appts.Item(i).Subject)))
+                logger.debug("deleting %s, %s", i, str(appts.Item(i).Subject))
 
                 # make sure it is one of our appointments
                 if self.isLurchCalAppt(appts.Item(i)):

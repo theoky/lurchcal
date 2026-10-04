@@ -28,6 +28,7 @@ from kivy.config import ConfigParser, Config
 from lurchcal.lurchcal_wf import create_task_appointments, remove_appointments
 
 from lurchcal.Task import Task
+from lurchcal.settings import settings_from_config
 
 # <Row@Label>:
 #     text_size: self.width, None
@@ -118,7 +119,7 @@ class LurchCalApp(App):
         self.settings_cls = SettingsWithSidebar
 
         self.tlock = Lock()
-        self.parsed_config = {}
+        self.settings = None
 
         self.icon = 'assets/lurch.png'
         self.title = "LurchCal (0.2.1)"
@@ -145,34 +146,7 @@ class LurchCalApp(App):
         return datetime.strptime("12:00").time()
 
     def build_parsed_config(self):
-        self.parsed_config["tag_order"] = self.split(
-            self.config.get("tags", "tag_order")
-        )
-        self.parsed_config["tag_projects"] = self.split(
-            self.config.get("tags", "tag_projects")
-        )
-        self.parsed_config["tag_ignore_appt"] = self.split(
-            self.config.get("tags", "tag_ignore_appt")
-        )
-        self.parsed_config["tags_to_create_appt"] = self.split(
-            self.config.get("tags", "tags_to_create_appt")
-        )
-        self.parsed_config["tags_future"] = self.split(
-            self.config.get("tags", "tags_future")
-        )
-        self.parsed_config["tags_to_block_time"] = self.split(
-            self.config.get("tags", "tags_to_block_time")
-        )
-        
-        self.parsed_config["lunch_break_time"] = self.read_time(
-            self.config.get("appt", "lunch_break_time")
-        )
-        self.parsed_config["before_noon_break_time"] = self.read_time(
-            self.config.get("appt", "before_noon_break_time")
-        )
-        self.parsed_config["start_of_day"] = self.read_time(
-            self.config.get("appt", "start_of_day")
-        )
+        self.settings = settings_from_config(self.config)
 
     def build_config(self, config):
         """
@@ -265,7 +239,7 @@ class LurchCalApp(App):
             progress.value = 0
             try:
                 unscheduled_tasks = create_task_appointments(
-                    self.cb_update, self.create_appts, self.config, self.parsed_config
+                    self.cb_update, self.create_appts, self.settings
                 )
 
                 self.root.ids.rv.data = [
@@ -296,7 +270,7 @@ class LurchCalApp(App):
             progress.value = 0
             try:
                 remove_appointments(
-                    self.cb_update, None, self.config, self.parsed_config
+                    self.cb_update, None, self.settings
                 )
                 
             except Exception as err:

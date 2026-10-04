@@ -4,9 +4,6 @@
 """
 """
 
-from kivy.logger import Logger
-
-
 def flt_has_children(element):
     return element.has_children
 
