@@ -29,7 +29,7 @@ At the start of AP1, establish and record the real baseline in a proper Python 3
 | AP1 | Core decoupling and regression baseline | DONE | none | Scheduling/domain code no longer depends on Kivy config/logging |
 | AP2 | Independent Task Server | DONE | AP1 | Zim tasks and schedule publication available through versioned local REST API |
 | AP3 | LurchCal consumes Task Server | DONE | AP2 | Kivy app still works, but LurchCal contains no direct Zim access |
-| AP4 | LurchCal web backend and job model | NOT STARTED | AP3 | FastAPI/Jinja2 backend can run workflows and expose settings/jobs/calendar data |
+| AP4 | LurchCal web backend and job model | DONE | AP3 | FastAPI/Jinja2 backend can run workflows and expose settings/jobs/calendar data |
 | AP5 | HTMX/Alpine/FullCalendar browser UI | NOT STARTED | AP4 | Browser has functional parity with Kivy plus calendar view |
 | AP6 | Cutover, launcher, Kivy removal, cleanup | NOT STARTED | AP5 | Browser version is default; Kivy removed; docs/tests updated |
 
@@ -299,6 +299,11 @@ YYYY-MM-DD APx DONE
 - Tests run and result
 - Known limitations / follow-up explicitly deferred
 ```
+
+2026-10-04 AP4 DONE
+- Added the UI-independent SchedulingService with structured workflow results and semantic progress callbacks, retaining Kivy compatibility wrappers. Added the local FastAPI/Jinja2 diagnostic backend, a single-worker in-memory job model, settings persistence and Task Server settings proxy, and normalized view-only calendar event endpoint. Kivy remains available; full browser UI is AP5.
+- Verification in Python 3.11.11: focused backend/workflow tests 11 passed; full suite 69 passed; `python -m compileall -q src` and `git diff --check` passed. One Starlette/httpx TestClient deprecation warning remains.
+- Outlook COM setup/use is confined to the provider worker boundary. Real Outlook/Google integration remains environment-dependent and was not exercised; AP5 browser parity remains deferred.
 
 2026-10-04 AP1 DONE
 - Added immutable typed settings and an adapter from the existing INI/Kivy configuration; scheduling and task parsing now consume typed settings, and non-UI logging uses Python `logging`.

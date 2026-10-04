@@ -60,6 +60,10 @@ Example requests: `GET /api/v1/health`, `GET /api/v1/capabilities`, and `GET /ap
 
 The versioned API provides health, capabilities, read-only task retrieval, settings, validation, and schedule publication endpoints. It does not expose task mutation operations. Start the Task Server before using the Kivy scheduling or schedule-publication actions. Configure the Task Server base URL in LurchCal if it differs from `http://127.0.0.1:8001`; configure Zim database and schedule-page paths on the Task Server. Removing calendar appointments remains a calendar-only action.
 
+## LurchCal Web Backend (AP4 transition)
+
+Kivy remains available during the migration. Start the diagnostic LurchCal backend separately from the Task Server with `python -m lurchcal.web_server`; it binds to `127.0.0.1:8000` by default. The minimal home page and `/docs` are diagnostic only; the functional browser interface is AP5. Scheduling actions are submitted as in-memory background jobs and can be polled through `GET /api/v1/jobs/{job_id}`. Routes include `GET /api/v1/health`, `POST /api/v1/jobs/schedules`, `POST /api/v1/jobs/remove-appointments`, `/api/v1/settings/lurchcal`, `/api/v1/settings/task-source`, `/api/v1/settings/status`, and `GET /api/v1/calendar/events?start=...&end=...`. Task-source settings are proxied by LurchCal to the separate Task Server; browser clients should only call LurchCal. The first calendar endpoint is view-only.
+
 ## Testing
 
 The test suite uses pytest with per-test SQLite databases generated from deterministic fixtures to avoid file-locking issues on Windows. Fixtures in `tests/conftest.py` provide `db_path`, `db_conn`, `ro_conn`, and `engine`, building a fresh database via `tests/zim_test_utils.initialize_zim_sqlite` for every test or worker. Because the schema is synthesized on demand, no binary SQLite file is stored in the repository. Connections and SQLAlchemy engines are closed and disposed during teardown, which is essential on Windows for releasing handles before temporary files are removed.

@@ -4,6 +4,8 @@
 """
 """
 import logging
+from dataclasses import dataclass, field
+from typing import Callable
 
 from datetime import datetime, timedelta, date, time
 
@@ -106,6 +108,80 @@ def build_tree(tasks):
     return root
 
 
+@dataclass
+class WorkflowResult:
+    scheduled_tasks: list = field(default_factory=list)
+    unscheduled_tasks: list = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    statistics: dict = field(default_factory=dict)
+
+
+class SchedulingService:
+    """UI-independent orchestration for scheduling and calendar actions."""
+
+    def __init__(self, settings, calendar_factory=None, task_client_factory=None):
+        self.settings = _coerce_settings(settings)
+        self.calendar_factory = calendar_factory or CalendarFactory
+        self.task_client_factory = task_client_factory or TaskServerClient
+
+    def create_schedule(self, create_calendar_appointments=False, publish_schedule=True, progress=None):
+        emit = progress or (lambda event: None)
+        settings = self.settings
+        emit({"stage": "tasks", "message": "Retrieving and parsing tasks"})
+        task_server = self.task_client_factory(settings.task_server_url)
+        tasks = TaskParser(settings).parse_tasks(task_server.get_tasks(date.today()))
+        task_tree = build_tree(tasks)
+        tagged_task_list = [node.get_attr("task") for node in preorder_iter(
+            task_tree, filter_condition=lambda x: x.node_name != "0.0")]
+
+        emit({"stage": "calendar", "message": "Reading calendar availability"})
+        cal = self.calendar_factory.create_calendar(settings.appt.app)
+        cal.authenticate()
+        start_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        end_date = start_date + timedelta(days=settings.appt.days_for_scheduling)
+        appointments = cal.get_appointments(start_date, end_date)
+
+        emit({"stage": "scheduling", "message": "Scheduling tasks"})
+        scheduled, unscheduled = TaskScheduler(settings).schedule_everything(
+            cal, date.today(), tagged_task_list, appointments,
+            start_time=datetime.now().time(), days=settings.appt.days_for_scheduling)
+
+        emit({"stage": "calendar_update", "message": "Updating calendar appointments"})
+        if create_calendar_appointments:
+            delete_start = start_date - timedelta(days=settings.appt.days_for_scheduling)
+            delete_end = start_date + timedelta(days=settings.appt.days_for_scheduling)
+            cal.delete_lurchcal_meetings(cal.get_appointments(start_date, delete_end))
+        for item in scheduled:
+            if any(tag in item.task.tags for tag in settings.tags.tags_to_create_appt):
+                item.task.create_appt_anyway = True
+            if any(tag in item.task.tags for tag in settings.tags.tags_to_block_time):
+                item.task.block_time = True
+        task_book, _ = filter_tasks(scheduled, lambda item: item.duration >= settings.appt.min_task_len_4_appt
+                                    or any(tag in item.task.tags for tag in settings.tags.tags_to_create_appt))
+        if create_calendar_appointments:
+            cal.create_appointments_4_tasks(task_book)
+
+        if publish_schedule:
+            emit({"stage": "publication", "message": "Publishing schedule"})
+            task_server.publish_schedule(scheduled)
+        result = WorkflowResult(scheduled, unscheduled, [], {
+            "task_count": len(tagged_task_list), "scheduled_count": len(scheduled),
+            "unscheduled_count": len(unscheduled), "appointment_count": len(task_book),
+        })
+        emit({"stage": "complete", "message": "Schedule completed", "statistics": result.statistics})
+        return result
+
+    def remove_calendar_appointments(self, progress=None):
+        emit = progress or (lambda event: None)
+        cal = self.calendar_factory.create_calendar(self.settings.appt.app)
+        cal.authenticate()
+        start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        end = start + timedelta(days=self.settings.appt.days_for_scheduling)
+        start -= timedelta(days=self.settings.appt.days_for_scheduling)
+        cal.delete_lurchcal_meetings(cal.get_appointments(start, end))
+        emit({"stage": "complete", "message": "LurchCal appointments removed"})
+
+
 def remove_appointments(cb, cal, settings):
     
     if not cal:
@@ -130,117 +206,15 @@ def remove_appointments(cb, cal, settings):
 
 
 def create_task_appointments(cb, create_appts, settings):
-    # Accept the Kivy ConfigParser during the transition from the UI boundary.
-    settings = _coerce_settings(settings)
-    # Create calendar based on app setting in config
-    app_type = settings.appt.app
-    
-    # Retrieve source-neutral DTOs, then interpret/split them in LurchCal.
-    logger.info("Retrieving tasks from Task Server")
-    task_server = TaskServerClient(settings.task_server_url)
-    task_parser = TaskParser(settings)
-    tasks = task_parser.parse_tasks(task_server.get_tasks(date.today()))
-    logger.info("Retrieved and parsed %d tasks", len(tasks))
-
-    logger.info("Building task hierarchy")
-    task_tree = build_tree(tasks)
-    tagged_task_list = [
-        node.get_attr("task")
-        for node in preorder_iter(
-            task_tree, filter_condition=lambda x: x.node_name != "0.0"
-        )
-    ]
-
-    cb()
-
-    cal = CalendarFactory.create_calendar(app_type)
-    cal.authenticate()
-
-    # get calendar appointments
-    start_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-    end_date = start_date + timedelta(days=settings.appt.days_for_scheduling)
-
-    appointments = cal.get_appointments(start_date, end_date)
-
-    cb()
-
-    # schedule tasks
-    logger.info("Scheduling %d tasks", len(tagged_task_list))
-    scheduler = TaskScheduler(settings)
-    scheduled_tasks, unscheduled_tasks = scheduler.schedule_everything(
-        cal,
-        date.today(),
-        tagged_task_list,
-        appointments,
-        start_time=datetime.now().time(),
-        days=settings.appt.days_for_scheduling
-    )
-    
-    
-    #   # schedule tasks
-    # scheduled_tasks, unscheduled_tasks = schedule_everything(
-    #     cal,
-    #     date.today(),
-    #     tagged_task_list,
-    #     appointments,
-    #     config,
-    #     parsed_config,
-    #     start_time=datetime.now().time(),
-    # )
-
-    # # sort scheduled tasks by date
-    # scheduled_tasks.sort(key=lambda x: x.start)
-
-    # # TBD date: print_appointments(date.today(), appointments)
-    # # print_appointments("2024-02-05", new_apps)
-
-    # # create appointments in calendar
-    # # print("Scheduled Tasks:")
-
-    cb()
-
-    if create_appts:
-        # remove all appointments which are from lurchcal, so that they are not rescheduled
-        start_delete_date = datetime.now().replace(
-            hour=0, minute=0, second=0, microsecond=0
-        )
-        end_date = start_delete_date + timedelta(
-            days=settings.appt.days_for_scheduling
-        )
-        start_delete_date = start_delete_date + timedelta(
-            days=-settings.appt.days_for_scheduling
-        )
-
-        appointments_del_range = cal.get_appointments(start_date, end_date)
-        cal.delete_lurchcal_meetings(appointments_del_range)
-
-    cb()
-
-    for t in scheduled_tasks:
-        if any(e in t.task.tags for e in settings.tags.tags_to_create_appt):
-            t.task.create_appt_anyway = True
-            
-        if any(e in t.task.tags for e in settings.tags.tags_to_block_time):
-            t.task.block_time = True
-            
-    # add new appointments
-    task_book, remaining_tasks = filter_tasks(
-        scheduled_tasks,
-        lambda t: t.duration >= settings.appt.min_task_len_4_appt
-        or any(e in t.task.tags for e in settings.tags.tags_to_create_appt),
-    )
-
-    if create_appts:
-        logger.info("Creating calendar appointments for %d scheduled tasks", len(task_book))
-        cal.create_appointments_4_tasks(task_book)
-
-    cb()
-
-    logger.info("Publishing schedule with %d tasks", len(scheduled_tasks))
-    task_server.publish_schedule(scheduled_tasks)
-
-    cb()
-    return unscheduled_tasks
+    """Legacy Kivy adapter for the UI-independent SchedulingService."""
+    events = []
+    def legacy_progress(event):
+        events.append(event)
+        cb()
+    result = SchedulingService(settings).create_schedule(
+        create_calendar_appointments=create_appts, publish_schedule=True,
+        progress=legacy_progress)
+    return result.unscheduled_tasks
 
 
 def _coerce_settings(settings):
