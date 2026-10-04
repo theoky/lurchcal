@@ -22,25 +22,27 @@ The following decisions are fixed for the current migration:
 
 ## 3. Current architecture
 
-The current repository is centered around `src/LurchCalApp.py` and `src/lurchcal/lurchcal_wf.py`.
+The current user workflow is centered around `src/LurchCalApp.py` and `src/lurchcal/lurchcal_wf.py`. AP2 adds the independent `src/task_server/` process in parallel; the Kivy workflow continues to use its existing direct path until AP3.
 
 ```text
-Kivy UI (src/LurchCalApp.py)
-        |
-        v
-lurchcal_wf.py
+Kivy UI (src/LurchCalApp.py)                  Task Server (AP2)
+        |                                      |
+        v                                      v
+lurchcal_wf.py                            versioned REST API
    |---- TaskParser ----------------------> Zim SQLite index.db
-   |---- TaskScheduler / Day / Task
+   |---- TaskScheduler / Day / Task            |
    |---- CalendarFactory -----------------> Outlook COM / Google Calendar
-   `---- write_to_zim_page() -------------> Zim wiki page file
+   `---- write_to_zim_page()                    `-- ZimTaskSource
+                                                     |-- SQLite tasks (read-only)
+                                                     `-- schedule publication
 ```
 
 Important current couplings:
 
 - `TaskParser.py` imports `sqlite3` and reads Zim's `tasklist` and `pages` tables directly.
 - `lurchcal_wf.py` reads `zim.path_db`, writes `zim.path_page`, creates the calendar adapter, orchestrates scheduling, and reports progress through a GUI callback.
-- `TaskScheduler.py`, `TaskParser.py`, `task_tools.py`, `CalendarOutlook.py`, `CalendarGoogle.py`, and `lurchcal_wf.py` depend on `kivy.logger` and/or Kivy configuration.
-- `LurchCalApp.py` owns both UI and configuration parsing.
+- The Kivy workflow still reads Zim directly; this is removed in AP3 when it switches to the Task Server API.
+- `LurchCalApp.py` owns the UI and adapts its existing settings to typed core settings.
 - Outlook uses `win32com.client`; it must continue to execute in local Python and must not move into browser JavaScript.
 - The existing UI starts work in background threads. Any new background-job implementation must respect Outlook COM thread affinity.
 

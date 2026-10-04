@@ -11,20 +11,22 @@ The immediate scope is:
 Longer term the app should support richer task metadata, additional calendar providers, more advanced scheduling constraints, and guardrails for conflicting appointments.
 
 ## Architectural Overview
-The system is a Kivy application (`src/LurchCalApp.py`) that orchestrates a workflow defined in `lurchcal/lurchcal_wf.py`. The workflow coordinates three subsystems:
+The current user-facing system remains the Kivy application (`src/LurchCalApp.py`) and its workflow in `lurchcal/lurchcal_wf.py`. AP2 adds a separate local Task Server (`src/task_server/`) with a source-neutral versioned API and Zim source adapter. The Kivy application still uses its direct Zim path until AP3.
 
-1. **Task ingestion** – `TaskParser` reads Zim’s SQLite database, creates `Task` objects, and resolves hierarchical metadata such as inherited durations and tags. Tasks longer than the configured split threshold are broken into subtasks. It consumes UI-independent typed settings; Zim database access remains in the parser until AP2/AP3.
+1. **Task ingestion** – In the current Kivy flow, `TaskParser` directly reads Zim’s SQLite database, creates `Task` objects, and resolves hierarchical metadata such as inherited durations and tags. The separate AP2 Task Server also exposes source-neutral task DTOs; its `ZimTaskSource` performs read-only Zim reads and returns generic task fields. Duration syntax, task splitting, hierarchy propagation, and scheduling stay in LurchCal. Kivy integration with this API is deferred to AP3.
 2. **Scheduling** – `TaskScheduler` prepares `Day` buckets representing working time, blocks breaks and existing meetings, and assigns tasks according to priority/tag filters. Reserved slots become `ScheduledTask` instances that carry start time, duration, and source metadata. 
 3. **Calendar integration** – A `Calendar` implementation, selected via `CalendarFactory`, retrieves current appointments and optionally creates or deletes LurchCal events. Outlook automation uses `win32com`, while Google Calendar relies on the REST API. 
 
 `LurchCalApp` provides a minimal GUI with three actions: write a Zim schedule, create appointments, or remove previously generated appointments. Each action spawns a background thread, updates a progress bar through a callback, and renders unscheduled tasks in a `RecycleView`. 
 
 ## Data Flow
-1. **Configuration** – The Kivy app maintains the existing INI settings and defaults, then adapts them to immutable typed settings in `lurchcal.settings`. Comma-separated tag settings and configured break/start times are parsed in that configuration layer. Scheduling and parsing consume typed settings rather than Kivy configuration objects or an untyped parsed dictionary.
+1. **Configuration** – The Kivy app maintains its existing settings and adapts them to typed settings in `lurchcal.settings`. Separately, the Task Server stores Zim `path_db` and `path_page` in its own local INI file. These settings are not yet consumed by Kivy.
 2. **Task retrieval** – `create_task_appointments` instantiates `TaskParser` with typed settings, reads open tasks via `_read_zim_tasks`, builds a task tree with `build_tree`, and flattens it in priority order. Duration and tag metadata cascade from parent tasks to children.
 3. **Calendar snapshot** – The workflow authenticates to the selected provider, fetches upcoming events for the scheduling horizon, and filters out previously generated LurchCal meetings. 
 4. **Scheduling** – `TaskScheduler.schedule_everything` builds `Day` objects for the planning window, blocks meetings and breaks, and then iteratively reserves time for tasks ordered by `filter_list` and configured `tag_order`. Remaining capacity is offered to "future" tagged tasks. 
-5. **Outputs** – `write_to_zim_page` produces a Zim-formatted task list, grouping entries by day and embedding task metadata. When appointment creation is enabled, the calendar adapter deletes stale LurchCal items, then calls `create_appointments_4_tasks` to add new ones and tags each appointment with a LurchCal GUID for future cleanup. 
+5. **Outputs** – The existing Kivy workflow still writes its Zim-formatted task list directly. The AP2 Task Server separately supports `POST /api/v1/schedule-publications` to render and publish the same representation through its configured source. When appointment creation is enabled, the calendar adapter deletes stale LurchCal items, then calls `create_appointments_4_tasks` to add new ones and tags each appointment with a LurchCal GUID for future cleanup.
+
+The Task Server's versioned API includes `GET /api/v1/health`, `GET /api/v1/capabilities`, `GET /api/v1/tasks?as_of=YYYY-MM-DD`, `GET`/`PUT /api/v1/settings`, `POST /api/v1/settings/validate`, and `POST /api/v1/schedule-publications`. Task endpoints are read-only; publication writes a schedule representation but does not mutate task records.
 
 ## Key Domain Rules
 - **Task metadata** – Durations are parsed from `~duration~` fragments using `durations_nlp`. Missing durations fall back to `tasks.def_task_len`. Parent tasks distribute or assign durations to children based on flags. Tags prefixed with `@` drive filtering rules. 
@@ -41,6 +43,7 @@ The system is a Kivy application (`src/LurchCalApp.py`) that orchestrates a work
 
 ## Configuration Surface
 - `settings_lurchcal.json` (loaded via Kivy settings) exposes defaults for task lengths, scheduling horizon, calendar provider, tag semantics, and Zim paths. Users edit these through the settings dialog launched from the main window. 
+- The AP2 Task Server INI section `[zim]` stores `path_db` and `path_page`. Its default location is `%LOCALAPPDATA%\LurchCal\task_server.ini`, overridable with `LURCHCAL_TASK_SERVER_CONFIG`. The service listens on `127.0.0.1:8001` by default.
 
 ## Current Limitations
 - Error handling is minimal; failures in background threads surface only as strings in the UI. Outlook-specific dependencies prevent cross-platform execution without guards. 
