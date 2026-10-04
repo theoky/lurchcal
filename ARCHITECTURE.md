@@ -22,26 +22,24 @@ The following decisions are fixed for the current migration:
 
 ## 3. Current architecture
 
-The current user workflow is centered around `src/LurchCalApp.py` and `src/lurchcal/lurchcal_wf.py`. AP2 adds the independent `src/task_server/` process in parallel; the Kivy workflow continues to use its existing direct path until AP3.
+The current user workflow is centered around `src/LurchCalApp.py` and `src/lurchcal/lurchcal_wf.py`. The Kivy workflow uses the independent `src/task_server/` process for task retrieval and schedule publication; calendar operations remain in LurchCal.
 
 ```text
-Kivy UI (src/LurchCalApp.py)                  Task Server (AP2)
-        |                                      |
-        v                                      v
-lurchcal_wf.py                            versioned REST API
-   |---- TaskParser ----------------------> Zim SQLite index.db
-   |---- TaskScheduler / Day / Task            |
-   |---- CalendarFactory -----------------> Outlook COM / Google Calendar
-   `---- write_to_zim_page()                    `-- ZimTaskSource
-                                                     |-- SQLite tasks (read-only)
-                                                     `-- schedule publication
+Kivy UI (src/LurchCalApp.py)                  Task Server
+        |                                      ^
+        v                                      |
+lurchcal_wf.py -- TaskServerClient -- versioned REST API
+   |---- TaskParser / TaskScheduler / Day / Task  |-- ZimTaskSource
+   `---- CalendarFactory -----------------> Outlook COM / Google Calendar
+                                                  |-- SQLite tasks (read-only)
+                                                  `-- schedule publication
 ```
 
 Important current couplings:
 
-- `TaskParser.py` imports `sqlite3` and reads Zim's `tasklist` and `pages` tables directly.
-- `lurchcal_wf.py` reads `zim.path_db`, writes `zim.path_page`, creates the calendar adapter, orchestrates scheduling, and reports progress through a GUI callback.
-- The Kivy workflow still reads Zim directly; this is removed in AP3 when it switches to the Task Server API.
+- `TaskServerClient.py` retrieves source-neutral task DTOs and publishes generated schedules over HTTP.
+- `lurchcal_wf.py` orchestrates Task Server access, local interpretation/scheduling, calendar operations, and progress callbacks.
+- Zim database and schedule-page access are owned by the Task Server; LurchCal configuration contains the Task Server URL, not Zim paths.
 - `LurchCalApp.py` owns the UI and adapts its existing settings to typed core settings.
 - Outlook uses `win32com.client`; it must continue to execute in local Python and must not move into browser JavaScript.
 - The existing UI starts work in background threads. Any new background-job implementation must respect Outlook COM thread affinity.

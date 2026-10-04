@@ -78,6 +78,27 @@ def test_tasks_exclude_future_start_waiting_and_closed_rows(tmp_path):
     assert [task.description for task in tasks] == ["Active"]
 
 
+def test_invalid_and_sentinel_task_dates_are_returned_as_absent(tmp_path):
+    rows = [
+        (20, 1, 0, 0, 0, 0, 1, 0, "2000-01-01", "9999", "", "No due date"),
+        (21, 1, 0, 0, 0, 0, 1, 0, "0000-99-99", "2024-99-99", "", "Invalid dates"),
+        (22, 1, 0, 0, 0, 0, 1, 0, "2024-01-02", "2024-03-04", "", "Valid dates"),
+    ]
+    db = initialize_zim_sqlite(tmp_path / "dates.db", task_rows=rows)
+
+    tasks = ZimTaskSource(TaskServerSettings(path_db=str(db), path_page="")).get_tasks(
+        date(2025, 1, 1)
+    )
+    by_description = {task.description: task for task in tasks}
+
+    assert by_description["No due date"].start_date == date(2000, 1, 1)
+    assert by_description["No due date"].due_date is None
+    assert by_description["Invalid dates"].start_date is None
+    assert by_description["Invalid dates"].due_date is None
+    assert by_description["Valid dates"].start_date == date(2024, 1, 2)
+    assert by_description["Valid dates"].due_date == date(2024, 3, 4)
+
+
 def test_zim_database_is_not_modified_by_reads(db_path):
     before = db_path.read_bytes()
     ZimTaskSource(TaskServerSettings(path_db=str(db_path), path_page="")).get_tasks(date(2024, 1, 2))

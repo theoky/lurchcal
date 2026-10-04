@@ -2,6 +2,7 @@
 from configparser import ConfigParser as IniConfigParser
 from dataclasses import dataclass
 from datetime import datetime, time
+from pathlib import Path
 from typing import Protocol
 
 
@@ -53,23 +54,24 @@ class TagSettings:
 
 
 @dataclass(frozen=True)
-class ZimSettings:
-    path_db: str
-    path_page: str
-
-
-@dataclass(frozen=True)
 class AppSettings:
     appt: AppointmentSettings
     tasks: TaskSettings
     tags: TagSettings
-    zim: ZimSettings
+    task_server_url: str = "http://127.0.0.1:8001"
 
 
 def settings_from_config(config: ConfigReader) -> AppSettings:
     """Adapt an existing Kivy or stdlib ConfigParser to typed settings."""
     getint = config.getint
     get = config.get
+
+    def get_optional(section: str, option: str, fallback: str) -> str:
+        try:
+            return get(section, option)
+        except Exception:
+            return fallback
+
     return AppSettings(
         appt=AppointmentSettings(
             min_task_len_4_appt=getint("appt", "min_task_len_4_appt"),
@@ -81,25 +83,40 @@ def settings_from_config(config: ConfigReader) -> AppSettings:
             before_noon_break_time=_read_time(get("appt", "before_noon_break_time")),
             start_of_day=_read_time(get("appt", "start_of_day")),
             hours_per_day=getint("appt", "hours_per_day"),
-            app=get("appt", "app").lower(),
+            app=get_optional("appt", "app", "outlook").lower(),
         ),
         tasks=TaskSettings(
             def_task_len=getint("tasks", "def_task_len"),
             min_task_split=getint("tasks", "min_task_split"),
         ),
         tags=TagSettings(
-            ilm=get("tags", "ilm"),
-            tag_order=_split(get("tags", "tag_order")),
-            tag_projects=_split(get("tags", "tag_projects")),
-            tag_ignore_appt=_split(get("tags", "tag_ignore_appt")),
-            tags_to_create_appt=_split(get("tags", "tags_to_create_appt")),
-            tags_future=_split(get("tags", "tags_future")),
-            tags_to_block_time=_split(get("tags", "tags_to_block_time")),
+            ilm=get_optional("tags", "ilm", "ilm"),
+            tag_order=_split(get_optional("tags", "tag_order", "")),
+            tag_projects=_split(get_optional("tags", "tag_projects", "")),
+            tag_ignore_appt=_split(get_optional("tags", "tag_ignore_appt", "")),
+            tags_to_create_appt=_split(get_optional("tags", "tags_to_create_appt", "appt")),
+            tags_future=_split(get_optional("tags", "tags_future", "future")),
+            tags_to_block_time=_split(get_optional("tags", "tags_to_block_time", "block")),
         ),
-        zim=ZimSettings(
-            path_db=get("zim", "path_db"), path_page=get("zim", "path_page")
-        ),
+        task_server_url=_read_task_server_url(config),
     )
+
+
+def _read_task_server_url(config: ConfigReader) -> str:
+    """Read the service URL; migrate only that value from old INI if present."""
+    try:
+        return config.get("taskserver", "base_url")
+    except Exception:
+        pass
+    try:
+        return config.get("task_server", "base_url")
+    except Exception:
+        pass
+    try:
+        return config.get("lurchcal", "task_server_url")
+    except Exception:
+        pass
+    return "http://127.0.0.1:8001"
 
 
 def read_settings(path: str) -> AppSettings:
@@ -108,3 +125,30 @@ def read_settings(path: str) -> AppSettings:
     if not config.read(path):
         raise FileNotFoundError(path)
     return settings_from_config(config)
+
+
+def migrate_legacy_zim_settings(
+    source_path: str | None, task_server_config_path: str
+) -> bool:
+    """One-time bridge: copy legacy [zim] paths into Task Server INI if unset."""
+    if not source_path:
+        return False
+    legacy = IniConfigParser()
+    if not legacy.read(source_path) or "zim" not in legacy:
+        return False
+    target = Path(task_server_config_path)
+    server = IniConfigParser()
+    if server.read(target, encoding="utf-8") and server.has_section("zim"):
+        if server.get("zim", "path_db", fallback="").strip() or server.get(
+            "zim", "path_page", fallback=""
+        ).strip():
+            return False
+    if not server.has_section("zim"):
+        server.add_section("zim")
+    for key in ("path_db", "path_page"):
+        if legacy.has_option("zim", key):
+            server.set("zim", key, legacy.get("zim", key))
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with target.open("w", encoding="utf-8") as stream:
+        server.write(stream)
+    return True

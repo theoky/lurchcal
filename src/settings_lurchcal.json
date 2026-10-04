@@ -125,29 +125,11 @@
 
 
     { "type": "title",
-      "title": "Lurch Cal ZIM Settings" },
+      "title": "Task Server" },
 
-    { "type": "path",
-      "title": "ZIM Exe",
-      "desc": "Path to the ZIM exe.",
-      "section": "zim",
-      "key": "path_exe" },
-
-    { "type": "path",
-      "title": "ZIM Wiki",
-      "desc": "Path to the ZIM Wiki which will be used.",
-      "section": "zim",
-      "key": "path_wiki" },
-
-    { "type": "path",
-      "title": "ZIM DB",
-      "desc": "Path to the ZIM DB.",
-      "section": "zim",
-      "key": "path_db" },
-
-    { "type": "path",
-      "title": "ZIM Page",
-      "desc": "Path to the ZIM page where the tasks should be generated.",
-      "section": "zim",
-      "key": "path_page" }
+    { "type": "string",
+      "title": "Task Server base URL",
+      "desc": "Local Task Server address. Start it with python -m task_server.",
+      "section": "taskserver",
+      "key": "base_url" }
 ]
