@@ -75,6 +75,17 @@ class ZimTaskSource:
         except sqlite3.Error as exc:
             raise SourceUnavailableError(f"Unable to inspect Zim database schema: {exc}") from exc
 
+    @staticmethod
+    def _parse_task_date(value: str | None) -> date | None:
+        """Parse a Zim task date, treating sentinels and malformed values as absent."""
+        if not value:
+            return None
+        try:
+            return date.fromisoformat(value)
+        except (TypeError, ValueError):
+            logger.warning("Ignoring invalid Zim task date value %r", value)
+            return None
+
     def get_tasks(self, as_of: date) -> list[TaskRead]:
         path = self._db_path()
         try:
@@ -105,8 +116,8 @@ class ZimTaskSource:
                 parent_id=str(row[1]) if row[1] not in (None, 0, "0") else None,
                 description=row[2],
                 priority=int(row[3] or 0),
-                start_date=date.fromisoformat(row[4]) if row[4] else None,
-                due_date=date.fromisoformat(row[5]) if row[5] else None,
+                start_date=self._parse_task_date(row[4]),
+                due_date=self._parse_task_date(row[5]),
                 source_name=row[6],
                 has_children=bool(row[7]),
             )

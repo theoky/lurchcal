@@ -12,7 +12,7 @@ from lurchcal.Task import Task
 from lurchcal.TaskParser import TaskParser
 from lurchcal.TaskScheduler import TaskScheduler
 from lurchcal.GenAppointment import GenAppointment
-from lurchcal.settings import AppSettings, AppointmentSettings, TaskSettings, TagSettings, ZimSettings
+from lurchcal.settings import AppSettings, AppointmentSettings, TaskSettings, TagSettings
 
 from zoneinfo import ZoneInfo
 import time_machine
@@ -24,7 +24,6 @@ def make_scheduler_config():
         appt=AppointmentSettings(15, 30, 15, 1, 7, dt.time(12), dt.time(10), dt.time(9), 8, 'outlook'),
         tasks=TaskSettings(30, 60),
         tags=TagSettings('ilm', ('priority1', 'priority2'), (), ('ignore_me',), ('appt',), ('future',), ('block',)),
-        zim=ZimSettings('', ''),
     )
 
 class TestTaskScheduler(unittest.TestCase):
@@ -240,13 +239,20 @@ class TestTaskScheduler(unittest.TestCase):
 
 
 
-def test_schedule_tasks_from_zim_fixture(db_path):
-    """High priority tasks from a Zim database are scheduled before lower priority work."""
+def test_schedule_tasks_from_source_neutral_dtos():
+    """High priority service DTO tasks schedule before lower priority work."""
 
     config = make_scheduler_config()
     scheduler = TaskScheduler(config)
     parser = TaskParser(config)
-    tasks = parser.parse_zim_tasks(str(db_path))
+    tasks = parser.parse_tasks([
+        {"id": "1", "parent_id": None, "description": "Long Focus Task ~2h~ @Deep",
+         "priority": 3, "start_date": "2000-01-01", "due_date": "2024-01-02",
+         "source_name": "Work", "has_children": False},
+        {"id": "2", "parent_id": None, "description": "Write summary",
+         "priority": 1, "start_date": "2000-01-01", "due_date": "2024-01-01",
+         "source_name": "Work", "has_children": False},
+    ])
 
     start_date = dt.date(2024, 1, 1)
     end_date = start_date + dt.timedelta(days=7)

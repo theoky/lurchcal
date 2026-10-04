@@ -3,12 +3,10 @@
 import pytest
 from datetime import time
 from lurchcal.TaskParser import TaskParser
-from lurchcal.settings import AppSettings, AppointmentSettings, TaskSettings, TagSettings, ZimSettings
-from lurchcal.lurchcal_wf import build_tree, write_to_zim_page
+from lurchcal.settings import AppSettings, AppointmentSettings, TaskSettings, TagSettings
+from lurchcal.lurchcal_wf import build_tree
 from bigtree import preorder_iter
-from lurchcal.ScheduledTask import ScheduledTask
 from lurchcal.Task import Task
-from datetime import datetime
 
 
 @pytest.fixture()
@@ -17,7 +15,6 @@ def parser_config():
         appt=AppointmentSettings(15, 30, 15, 1, 7, time(12), time(10), time(9), 8, 'outlook'),
         tasks=TaskSettings(30, 60),
         tags=TagSettings('ilm', ('priority1', 'priority2'), (), ('ignore_me',), ('appt',), ('future',), ('block',)),
-        zim=ZimSettings('', ''),
     )
 
 
@@ -26,24 +23,32 @@ def parser(parser_config):
     return TaskParser(parser_config)
 
 
-def test_parse_zim_tasks_splits_and_filters(parser, db_path):
-    tasks = parser.parse_zim_tasks(str(db_path))
+def test_parse_source_neutral_tasks_splits_and_filters(parser):
+    tasks = parser.parse_tasks([
+        {"id": "1", "parent_id": None, "description": "Long Focus Task ~2h~ @Deep",
+         "priority": 3, "start_date": "2000-01-01", "due_date": "2024-01-02",
+         "source_name": "Work", "has_children": False},
+        {"id": "2", "parent_id": None, "description": "Write summary",
+         "priority": 1, "start_date": "2000-01-01", "due_date": "2024-01-01",
+         "source_name": "Work", "has_children": False},
+    ])
     descriptions = [task.description for task in tasks]
 
     assert descriptions == [
-        "Write summary",
         "st: Long Focus Task ~2h~ @Deep",
         "Long Focus Task ~2h~ @Deep",
+        "Write summary",
     ]
-    assert [task.duration for task in tasks] == [30, 60, 60]
-    assert [task.subid for task in tasks] == [0, 1, 0]
+    assert [task.duration for task in tasks] == [60, 60, 30]
+    assert [task.subid for task in tasks] == [1, 0, 0]
 
     for task in tasks:
         assert task.source_name == "Work"
         assert "Waiting Task" not in task.description
 
-    deep_tags = [task.tags for task in tasks[1:]]
-    assert all(tag_list == ["deep"] for tag_list in deep_tags)
+    assert tasks[0].tags == ["deep"]
+    assert tasks[1].tags == ["deep"]
+    assert tasks[2].tags == []
 
 
 def test_parse_task_description_from_fixture(parser):
@@ -64,15 +69,3 @@ def test_parent_child_inherit_tags_and_duration(parser):
     inherited = nodes[1].get_attr("task")
     assert inherited.duration == 121
     assert inherited.tags == ["work"]
-
-
-def test_schedule_page_keeps_zim_text_format(tmp_path):
-    path = tmp_path / "schedule.txt"
-    task = Task("Write report", prio=2, source_name="Work")
-    task.tags = ["work", "deep"]
-    write_to_zim_page(str(path), [ScheduledTask(datetime(2024, 1, 2, 9), task, 30)])
-    text = path.read_text(encoding="utf-8")
-    assert text.startswith("Content-Type: text/x-zim-wiki\nWiki-Format: zim 0.6\n")
-    assert "====== Geplante Tasks ======" in text
-    assert "===== 2024-01-02 =====" in text
-    assert "* 2024-01-02 09:00:00, 30m, (2): Write report (work, deep), [[Work]]" in text

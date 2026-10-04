@@ -5,6 +5,7 @@
 """
 import sys
 import ctypes
+import traceback
     
 from threading import Thread, Lock
 from time import sleep
@@ -28,7 +29,7 @@ from kivy.config import ConfigParser, Config
 from lurchcal.lurchcal_wf import create_task_appointments, remove_appointments
 
 from lurchcal.Task import Task
-from lurchcal.settings import settings_from_config
+from lurchcal.settings import migrate_legacy_zim_settings, settings_from_config
 
 # <Row@Label>:
 #     text_size: self.width, None
@@ -192,14 +193,19 @@ class LurchCalApp(App):
 
         # ENH File chooser, e.g. https://stackoverflow.com/questions/26028235/python-kivy-how-to-use-filechooser-access-files-outside-c-drive
         config.setdefaults(
-            "zim",
+            "taskserver",
             {
-                "path_exe": "zim.exe",
-                "path_wiki": "zim_wiki",
-                "path_db": "c:\.db",
-                "path_page": "c:\Geplante_Tasks.txt",
+                "base_url": "http://127.0.0.1:8001",
             },
         )
+
+        # Use the environment override/default target owned by the Task Server.
+        from task_server.config import SettingsStore
+
+        legacy_path = getattr(getattr(self, "config", None), "filename", None)
+        if not legacy_path:
+            legacy_path = "lurchal.ini"
+        migrate_legacy_zim_settings(legacy_path, str(SettingsStore().path))
 
     def build_settings(self, settings):
         """
@@ -247,6 +253,9 @@ class LurchCalApp(App):
                 ]
                 
             except Exception as err:
+                Logger.error(
+                    "LurchCalApp: task-list workflow failed:\n" + traceback.format_exc()
+                )
                 try:
                     self.root.ids.rv.data = [
                         {"text": "Exception raised!"},

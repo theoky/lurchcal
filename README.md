@@ -58,7 +58,7 @@ Ensure `src` is on `PYTHONPATH` when running from a source checkout (for example
 
 Example requests: `GET /api/v1/health`, `GET /api/v1/capabilities`, and `GET /api/v1/tasks?as_of=2026-10-04`. Settings use `{"path_db":"C:\\...\\index.db","path_page":"C:\\...\\Geplante_Tasks.txt"}`. A publication request uses `{"scheduled_tasks":[{"start":"2026-10-05T09:00:00","duration":30,"priority":2,"description":"Write report","tags":["work"],"source_name":"Work"}]}`.
 
-The versioned API provides health, capabilities, read-only task retrieval, settings, validation, and schedule publication endpoints. It does not expose task mutation operations. As of AP2, the Kivy app continues using its original direct Zim workflow; switching that app to the Task Server is AP3.
+The versioned API provides health, capabilities, read-only task retrieval, settings, validation, and schedule publication endpoints. It does not expose task mutation operations. Start the Task Server before using the Kivy scheduling or schedule-publication actions. Configure the Task Server base URL in LurchCal if it differs from `http://127.0.0.1:8001`; configure Zim database and schedule-page paths on the Task Server. Removing calendar appointments remains a calendar-only action.
 
 ## Testing
 

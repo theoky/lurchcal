@@ -3,32 +3,18 @@
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 """
 """
-import os
-import re
 import logging
 
 from datetime import datetime, timedelta, date, time
-from dateutil import parser
 
-from lurchcal.Task import Task
-from lurchcal.Day import Day
-from lurchcal.ScheduledTask import ScheduledTask
-import lurchcal.definitions
-
-from multisort import multisort, mscol
-
-from lurchcal.Calendar import Calendar
-from lurchcal.CalendarGoogle import CalendarGoogle
-from lurchcal.CalendarOutlook import CalendarOutlook
 from lurchcal.CalendarFactory import CalendarFactory
 
 from bigtree import Node, find_name, preorder_iter
 
-from lurchcal.outlook_enums import OlBusyStatus
-
 from lurchcal.TaskParser import TaskParser
 from lurchcal.TaskScheduler import TaskScheduler
 from lurchcal.settings import AppSettings, settings_from_config
+from lurchcal.TaskServerClient import TaskServerClient
 
 from lurchcal.task_tools import filter_tasks
 
@@ -95,7 +81,15 @@ def distribute_information(node, tags, topdown_duration):
 
 def build_tree(tasks):
 
-    ts = sorted(tasks, key=lambda x: x.parent)
+    def parent_sort_key(task):
+        """Keep numeric Zim IDs ordered while safely accepting string DTO IDs."""
+        parent = task.parent
+        try:
+            return (0, int(parent))
+        except (TypeError, ValueError):
+            return (1, str(parent))
+
+    ts = sorted(tasks, key=parent_sort_key)
 
     root = Node("0.0")
     for t in ts:
@@ -111,39 +105,6 @@ def build_tree(tasks):
 
     return root
 
-
-def write_to_zim_page(zim_page, scheduled_tasks):
-    cur_day = None
-    with open(zim_page, mode="w", encoding="utf-8") as f:
-        f.write("Content-Type: text/x-zim-wiki\n")
-        f.write("Wiki-Format: zim 0.6\n")
-        f.write("Creation-Date: " + datetime.now().isoformat())
-        f.write("\n\n")
-
-        f.write("====== Geplante Tasks ======\n")
-        f.write("Created " + str(datetime.today()) + "\n\n")
-
-        f.write("{} Tasks geplant.\n\n".format(len(scheduled_tasks)))
-
-        for st in scheduled_tasks:
-            if cur_day != st.start.date():
-                cur_day = st.start.date()
-
-                # TBD format date
-                f.write("===== {} =====\n".format(str(cur_day)))
-
-            tags = ", ".join(st.task.tags)
-
-            f.write(
-                "* {}, {}m, ({}): {} ({}), [[{}]]\n".format(
-                    st.start,
-                    st.duration,
-                    st.task.prio,
-                    st.task.description,
-                    tags,
-                    st.task.source_name,
-                )
-            )
 
 def remove_appointments(cb, cal, settings):
     
@@ -170,34 +131,30 @@ def remove_appointments(cb, cal, settings):
 
 def create_task_appointments(cb, create_appts, settings):
     # Accept the Kivy ConfigParser during the transition from the UI boundary.
-    if not isinstance(settings, AppSettings):
-        settings = settings_from_config(settings)
-    zim_db = settings.zim.path_db
-    zim_page = settings.zim.path_page
-
-    if not zim_db or not zim_page:
-        raise RuntimeError("ZIM DB and/or page not found.")
-
+    settings = _coerce_settings(settings)
     # Create calendar based on app setting in config
     app_type = settings.appt.app
     
-    cal = CalendarFactory.create_calendar(app_type)
-    cal.authenticate()
-
-    # get ZIM tasks
-    ## zim_tasks = parse_ZIM_tasks(zim_db, config, parsed_config)
+    # Retrieve source-neutral DTOs, then interpret/split them in LurchCal.
+    logger.info("Retrieving tasks from Task Server")
+    task_server = TaskServerClient(settings.task_server_url)
     task_parser = TaskParser(settings)
-    tasks = task_parser.parse_zim_tasks(zim_db)
+    tasks = task_parser.parse_tasks(task_server.get_tasks(date.today()))
+    logger.info("Retrieved and parsed %d tasks", len(tasks))
 
-    zim_task_tree = build_tree(tasks) #zimtasks
+    logger.info("Building task hierarchy")
+    task_tree = build_tree(tasks)
     tagged_task_list = [
         node.get_attr("task")
         for node in preorder_iter(
-            zim_task_tree, filter_condition=lambda x: x.node_name != "0.0"
+            task_tree, filter_condition=lambda x: x.node_name != "0.0"
         )
     ]
 
     cb()
+
+    cal = CalendarFactory.create_calendar(app_type)
+    cal.authenticate()
 
     # get calendar appointments
     start_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
@@ -208,6 +165,7 @@ def create_task_appointments(cb, create_appts, settings):
     cb()
 
     # schedule tasks
+    logger.info("Scheduling %d tasks", len(tagged_task_list))
     scheduler = TaskScheduler(settings)
     scheduled_tasks, unscheduled_tasks = scheduler.schedule_everything(
         cal,
@@ -266,18 +224,24 @@ def create_task_appointments(cb, create_appts, settings):
             t.task.block_time = True
             
     # add new appointments
-    zim_task_book, remaining_zim_tasks = filter_tasks(
+    task_book, remaining_tasks = filter_tasks(
         scheduled_tasks,
         lambda t: t.duration >= settings.appt.min_task_len_4_appt
         or any(e in t.task.tags for e in settings.tags.tags_to_create_appt),
     )
 
     if create_appts:
-        cal.create_appointments_4_tasks(zim_task_book)
+        logger.info("Creating calendar appointments for %d scheduled tasks", len(task_book))
+        cal.create_appointments_4_tasks(task_book)
 
     cb()
 
-    write_to_zim_page(zim_page, scheduled_tasks)
+    logger.info("Publishing schedule with %d tasks", len(scheduled_tasks))
+    task_server.publish_schedule(scheduled_tasks)
 
     cb()
     return unscheduled_tasks
+
+
+def _coerce_settings(settings):
+    return settings if isinstance(settings, AppSettings) else settings_from_config(settings)

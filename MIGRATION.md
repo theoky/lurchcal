@@ -28,7 +28,7 @@ At the start of AP1, establish and record the real baseline in a proper Python 3
 |---|---|---|---|---|
 | AP1 | Core decoupling and regression baseline | DONE | none | Scheduling/domain code no longer depends on Kivy config/logging |
 | AP2 | Independent Task Server | DONE | AP1 | Zim tasks and schedule publication available through versioned local REST API |
-| AP3 | LurchCal consumes Task Server | NOT STARTED | AP2 | Kivy app still works, but LurchCal contains no direct Zim access |
+| AP3 | LurchCal consumes Task Server | DONE | AP2 | Kivy app still works, but LurchCal contains no direct Zim access |
 | AP4 | LurchCal web backend and job model | NOT STARTED | AP3 | FastAPI/Jinja2 backend can run workflows and expose settings/jobs/calendar data |
 | AP5 | HTMX/Alpine/FullCalendar browser UI | NOT STARTED | AP4 | Browser has functional parity with Kivy plus calendar view |
 | AP6 | Cutover, launcher, Kivy removal, cleanup | NOT STARTED | AP5 | Browser version is default; Kivy removed; docs/tests updated |
@@ -162,6 +162,10 @@ Replace every direct Zim access in LurchCal with Task Server calls while keeping
 - Do not remove Kivy.
 - Do not build the browser UI yet.
 - Do not move LurchCal parsing/scheduling rules into the Task Server.
+
+## Completion note
+
+AP3 completed: the Kivy workflow retrieves tasks and publishes schedules through `TaskServerClient`, while task interpretation and scheduling remain in LurchCal. Zim paths are configured on the Task Server, and production LurchCal no longer accesses Zim files directly. The full Python 3.11 test suite passes (62 tests at completion). The user also verified the real Kivy-to-Task-Server flow by generating a Zim dashboard page.
 
 ---
 

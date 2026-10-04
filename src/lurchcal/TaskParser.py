@@ -1,19 +1,12 @@
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Copyright (C) 2023-2025 theoky
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-"""
-Task parser for handling ZIM tasks and task descriptions.
-"""
+"""Interpret source-neutral task records as LurchCal scheduling tasks."""
 import re
-import sqlite3
-import logging
 from copy import deepcopy
 from durations_nlp import Duration
 
 from lurchcal.Task import Task
-
-
-logger = logging.getLogger(__name__)
 
 
 class TaskParser:
@@ -24,19 +17,16 @@ class TaskParser:
             settings = settings_from_config(settings)
         self.settings = settings
         self.tag_re = r"\@(\w+)"
-        
-    def parse_zim_tasks(self, path_to_zim_db):
-        tasks = self._read_zim_tasks(path_to_zim_db)
-        return self._process_tasks(tasks)
-        
-        # parse all texts
-        # _tag_re = re.compile(r'(?<!\S)@(\w+)\b', re.U)
-    
+
+    def parse_tasks(self, task_records):
+        """Convert Task Server DTO mappings to LurchCal Tasks and split as before."""
+        return self._process_tasks(task_records)
+
     def parse_task_description(self, description):
         duration, is_default, assign_duration, _ = self._parse_duration(description)
         tags = self._parse_tags(description)
         return duration, is_default, assign_duration, tags
-        
+
     def _parse_duration(self, description):
         d = description.split("~")
         duration = self.settings.tasks.def_task_len
@@ -58,47 +48,10 @@ class TaskParser:
                 pass
 
         return duration, is_default, assign_duration, distribute_duration
-        
+
     def _parse_tags(self, description):
         m = re.findall(self.tag_re, description, re.U)
         return [t.lower() for t in m]
-
-    def _read_zim_tasks(self, path_to_zim_db):
-        condb = sqlite3.connect(path_to_zim_db)
-        condb.row_factory = sqlite3.Row
-        cursor = condb.cursor()
-
-        # ( id INTEGER PRIMARY KEY,
-        # source INTEGER,
-        # parent INTEGER,
-        # haschildren BOOLEAN,
-        # hasopenchildren BOOLEAN,
-        # status INTEGER,
-        # prio INTEGER,
-        # waiting BOOLEAN,
-        # start TEXT,
-        # due TEXT,
-        # tags TEXT,
-        # description TEXT )
-
-        # get all tasks sorted by prio and date
-        sql = """
-            select tasklist.*, pages.name from tasklist 
-            left join pages 
-            on tasklist.source = pages.id
-            where status = 0 and not waiting and start <= date()
-            order by due asc, prio desc, start asc        
-        """
-
-        # select * from tasklist
-        # where not haschildren and status = 0 and not waiting and start <= date()
-        # where not haschildren and status = 0 and not waiting and start <= date()
-        # order by due asc, prio desc
-        ## TODO paramterize date()
-        cursor.execute(sql)
-        tasks = cursor.fetchall()
-        condb.close()
-        return tasks
 
     def _process_tasks(self, tasks):
         res_tasks = []
@@ -106,16 +59,16 @@ class TaskParser:
         for i, t in enumerate(tasks):
             d = t["description"]
 
-            if not t["waiting"]:
+            if not t.get("waiting", False):
                 task = Task(
                     d,
-                    t["prio"],
-                    t["start"],
-                    t["due"],
-                    t["name"],
-                    t["haschildren"],
+                    t["priority"],
+                    str(t["start_date"]) if t.get("start_date") else None,
+                    str(t["due_date"]) if t.get("due_date") else None,
+                    t.get("source_name") or "",
+                    t["has_children"],
                     t["id"],
-                    t["parent"],
+                    t.get("parent_id") or 0,
                     self.settings.tasks.def_task_len,
                 )
 
