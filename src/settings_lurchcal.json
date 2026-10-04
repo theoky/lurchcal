@@ -28,7 +28,7 @@
 
    { "type": "numeric",
       "title": "Number of days to schedule for",
-      "desc": "How many days schould be used for scheduling.",
+      "desc": "How many days should be used for scheduling.",
       "section": "appt",
       "key": "days_for_scheduling" },
 
