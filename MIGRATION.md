@@ -27,7 +27,7 @@ At the start of AP1, establish and record the real baseline in a proper Python 3
 | ID | Work package | Status | Required predecessor | Exit milestone |
 |---|---|---|---|---|
 | AP1 | Core decoupling and regression baseline | DONE | none | Scheduling/domain code no longer depends on Kivy config/logging |
-| AP2 | Independent Task Server | NOT STARTED | AP1 | Zim tasks and schedule publication available through versioned local REST API |
+| AP2 | Independent Task Server | DONE | AP1 | Zim tasks and schedule publication available through versioned local REST API |
 | AP3 | LurchCal consumes Task Server | NOT STARTED | AP2 | Kivy app still works, but LurchCal contains no direct Zim access |
 | AP4 | LurchCal web backend and job model | NOT STARTED | AP3 | FastAPI/Jinja2 backend can run workflows and expose settings/jobs/calendar data |
 | AP5 | HTMX/Alpine/FullCalendar browser UI | NOT STARTED | AP4 | Browser has functional parity with Kivy plus calendar view |
@@ -300,3 +300,8 @@ YYYY-MM-DD APx DONE
 - Added immutable typed settings and an adapter from the existing INI/Kivy configuration; scheduling and task parsing now consume typed settings, and non-UI logging uses Python `logging`.
 - Baseline: Python 3.11.11, `python -m pytest -q`: 27 passed, 1 failed (the existing timed-appointment test expected behavior not implemented by the scheduler). Final: `python -m pytest -q`: 33 passed; `python -m compileall -q src` and `git diff --check` passed. Added settings, parsing, hierarchy/inheritance, schedule-page format, and no-Kivy-import checks using per-test SQLite fixtures.
 - Preserved existing appointment behavior; the appointment fixture now explicitly locks down that timed events are not blocked. AP2 remains deferred; Zim database and page access are still in LurchCal pending that package.
+
+2026-10-04 AP2 DONE
+- Added a separate FastAPI Task Server with source-neutral versioned task schemas, a `TaskSource` protocol, read-only `ZimTaskSource`, local INI-backed source settings and schedule publication.
+- Verification: `python -m pytest -q` — 48 passed; `python -m compileall -q src` and `git diff --check` passed. Server API/source tests use the deterministic per-test Zim SQLite fixture.
+- No task mutation API was added. Kivy still uses the original direct Zim path; its Task Server integration is deferred to AP3. Task Server TestClient reports a Starlette deprecation warning with current httpx; this is test tooling, not a failure.

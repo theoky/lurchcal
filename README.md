@@ -46,6 +46,20 @@ See [documentation.md](documentation.md) in this directory.
 - install requirements
 - start LurchCalApp.py
 
+## Task Server (AP2)
+
+The independent Task Server runs as a separate process on `127.0.0.1:8001` by default. Install the project requirements and start it from the repository root:
+
+```text
+python -m task_server
+```
+
+Ensure `src` is on `PYTHONPATH` when running from a source checkout (for example, `set PYTHONPATH=src` in Windows Command Prompt). The server stores its local source settings in `%LOCALAPPDATA%\LurchCal\task_server.ini`; set `LURCHCAL_TASK_SERVER_CONFIG` to use another INI location. Configure `path_db` and `path_page` through `PUT /api/v1/settings`, then check them with `POST /api/v1/settings/validate`.
+
+Example requests: `GET /api/v1/health`, `GET /api/v1/capabilities`, and `GET /api/v1/tasks?as_of=2026-10-04`. Settings use `{"path_db":"C:\\...\\index.db","path_page":"C:\\...\\Geplante_Tasks.txt"}`. A publication request uses `{"scheduled_tasks":[{"start":"2026-10-05T09:00:00","duration":30,"priority":2,"description":"Write report","tags":["work"],"source_name":"Work"}]}`.
+
+The versioned API provides health, capabilities, read-only task retrieval, settings, validation, and schedule publication endpoints. It does not expose task mutation operations. As of AP2, the Kivy app continues using its original direct Zim workflow; switching that app to the Task Server is AP3.
+
 ## Testing
 
 The test suite uses pytest with per-test SQLite databases generated from deterministic fixtures to avoid file-locking issues on Windows. Fixtures in `tests/conftest.py` provide `db_path`, `db_conn`, `ro_conn`, and `engine`, building a fresh database via `tests/zim_test_utils.initialize_zim_sqlite` for every test or worker. Because the schema is synthesized on demand, no binary SQLite file is stored in the repository. Connections and SQLAlchemy engines are closed and disposed during teardown, which is essential on Windows for releasing handles before temporary files are removed.
