@@ -5,6 +5,7 @@
 """
 import os
 import re
+import logging
 
 from datetime import datetime, timedelta, date, time
 from dateutil import parser
@@ -25,13 +26,13 @@ from bigtree import Node, find_name, preorder_iter
 
 from lurchcal.outlook_enums import OlBusyStatus
 
-from kivy.config import Config
-from kivy.logger import Logger, LOG_LEVELS
-
 from lurchcal.TaskParser import TaskParser
 from lurchcal.TaskScheduler import TaskScheduler
+from lurchcal.settings import AppSettings, settings_from_config
 
 from lurchcal.task_tools import filter_tasks
+
+logger = logging.getLogger(__name__)
 
 # globals
 
@@ -144,10 +145,10 @@ def write_to_zim_page(zim_page, scheduled_tasks):
                 )
             )
 
-def remove_appointments(cb, cal, config, parsed_config):
+def remove_appointments(cb, cal, settings):
     
     if not cal:
-        app_type = config.get("appt", "app").lower()
+        app_type = settings.appt.app
         
         cal = CalendarFactory.create_calendar(app_type)
         cal.authenticate()
@@ -157,11 +158,9 @@ def remove_appointments(cb, cal, config, parsed_config):
         hour=0, minute=0, second=0, microsecond=0
     )
     end_date = start_delete_date + timedelta(
-        days=config.getint("appt", "days_for_scheduling")
+        days=settings.appt.days_for_scheduling
     )
-    start_delete_date = start_delete_date + timedelta(
-        days=-config.getint("appt", "days_for_scheduling")
-    )
+    start_delete_date = start_delete_date + timedelta(days=-settings.appt.days_for_scheduling)
 
     appointments_del_range = cal.get_appointments(start_delete_date, end_date)
     cal.delete_lurchcal_meetings(appointments_del_range)
@@ -169,22 +168,25 @@ def remove_appointments(cb, cal, config, parsed_config):
     cb()
 
 
-def create_task_appointments(cb, create_appts, config, parsed_config):
-    zim_db = config.get("zim", "path_db")  # os.environ.get("LURCHCAL_ZIM_DB")
-    zim_page = config.get("zim", "path_page")  # os.environ.get("LURCHCAL_ZIM_PAGE")
+def create_task_appointments(cb, create_appts, settings):
+    # Accept the Kivy ConfigParser during the transition from the UI boundary.
+    if not isinstance(settings, AppSettings):
+        settings = settings_from_config(settings)
+    zim_db = settings.zim.path_db
+    zim_page = settings.zim.path_page
 
     if not zim_db or not zim_page:
         raise RuntimeError("ZIM DB and/or page not found.")
 
     # Create calendar based on app setting in config
-    app_type = config.get("appt", "app").lower()
+    app_type = settings.appt.app
     
     cal = CalendarFactory.create_calendar(app_type)
     cal.authenticate()
 
     # get ZIM tasks
     ## zim_tasks = parse_ZIM_tasks(zim_db, config, parsed_config)
-    task_parser = TaskParser(config)
+    task_parser = TaskParser(settings)
     tasks = task_parser.parse_zim_tasks(zim_db)
 
     zim_task_tree = build_tree(tasks) #zimtasks
@@ -199,21 +201,21 @@ def create_task_appointments(cb, create_appts, config, parsed_config):
 
     # get calendar appointments
     start_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-    end_date = start_date + timedelta(days=config.getint("appt", "days_for_scheduling"))
+    end_date = start_date + timedelta(days=settings.appt.days_for_scheduling)
 
     appointments = cal.get_appointments(start_date, end_date)
 
     cb()
 
     # schedule tasks
-    scheduler = TaskScheduler(config, parsed_config)
+    scheduler = TaskScheduler(settings)
     scheduled_tasks, unscheduled_tasks = scheduler.schedule_everything(
         cal,
         date.today(),
         tagged_task_list,
         appointments,
         start_time=datetime.now().time(),
-        days=config.getint("appt", "days_for_scheduling")
+        days=settings.appt.days_for_scheduling
     )
     
     
@@ -245,10 +247,10 @@ def create_task_appointments(cb, create_appts, config, parsed_config):
             hour=0, minute=0, second=0, microsecond=0
         )
         end_date = start_delete_date + timedelta(
-            days=config.getint("appt", "days_for_scheduling")
+            days=settings.appt.days_for_scheduling
         )
         start_delete_date = start_delete_date + timedelta(
-            days=-config.getint("appt", "days_for_scheduling")
+            days=-settings.appt.days_for_scheduling
         )
 
         appointments_del_range = cal.get_appointments(start_date, end_date)
@@ -257,17 +259,17 @@ def create_task_appointments(cb, create_appts, config, parsed_config):
     cb()
 
     for t in scheduled_tasks:
-        if any(e in t.task.tags for e in parsed_config["tags_to_create_appt"]): # parsed_config["tags_to_create_appt"] in t.task.tags:
+        if any(e in t.task.tags for e in settings.tags.tags_to_create_appt):
             t.task.create_appt_anyway = True
             
-        if any(e in t.task.tags for e in parsed_config["tags_to_block_time"]): 
+        if any(e in t.task.tags for e in settings.tags.tags_to_block_time):
             t.task.block_time = True
             
     # add new appointments
     zim_task_book, remaining_zim_tasks = filter_tasks(
         scheduled_tasks,
-        lambda t: t.duration >= config.getint("appt", "min_task_len_4_appt")
-        or any(e in t.task.tags for e in parsed_config["tags_to_create_appt"]),
+        lambda t: t.duration >= settings.appt.min_task_len_4_appt
+        or any(e in t.task.tags for e in settings.tags.tags_to_create_appt),
     )
 
     if create_appts:

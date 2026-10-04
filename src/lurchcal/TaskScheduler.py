@@ -5,9 +5,8 @@
 Task scheduler for managing task scheduling and calendar integration.
 """
 import re
+import logging
 from datetime import datetime, timedelta, date, time
-
-from kivy.logger import Logger
 
 from lurchcal.Task import Task
 from lurchcal.Day import Day
@@ -18,14 +17,16 @@ from lurchcal.task_tools import filter_tasks, flt_has_children, flt_ilm, flt_con
     flt_contains_end_date_prio2, flt_contains_end_date_prio1, flt_contains_end_date, \
     flt_gte_prio3, flt_prio2, flt_prio1, flt_contains_start_date
     
+logger = logging.getLogger(__name__)
+
+
 class TaskScheduler:
-    def __init__(self, config, parsed_config):
-        self.config = config
-        self.parsed_config = parsed_config
+    def __init__(self, settings):
+        self.settings = settings
         self.days = {}
         
     def schedule_tasks(self, tasks, start_date, end_date):
-        Logger.debug("lurchal.py: schedule_tasks: {0} tasks".format(len(tasks)))
+        logger.debug("schedule_tasks: %d tasks", len(tasks))
 
         ti = 0  # task_index
         res_scheduled_tasks = []
@@ -86,8 +87,8 @@ class TaskScheduler:
 
                 self.days[single_date] = Day(
                     single_date,
-                    self.parsed_config["start_of_day"],
-                    self.config.getint("appt", "hours_per_day"),
+                    self.settings.appt.start_of_day,
+                    self.settings.appt.hours_per_day,
                 )
 
                 # block everything before now
@@ -113,7 +114,7 @@ class TaskScheduler:
 
             # ENH dsl?
             ignore = False
-            for r in self.parsed_config["tag_ignore_appt"]:
+            for r in self.settings.tags.tag_ignore_appt:
                 if re.search(r, appt.summary, re.IGNORECASE):
                     ignore = True
                     break
@@ -129,33 +130,31 @@ class TaskScheduler:
                     d = self.days.get(day, None)
                     if d:
                         d.block_time(
-                            time(
-                                appt.parsedDateTime_start.hour, appt.parsedDateTime_start.minute
-                            ),
+                            time(appt.parsedDateTime_start.hour, appt.parsedDateTime_start.minute),
                             appt.duration,
                         )
         
     def _schedule_breaks(self):
         res_scheduled_tasks = []
         for d in self.days.values():
-            lbt = self.parsed_config["lunch_break_time"]
-            bnbt = self.parsed_config["before_noon_break_time"]
-            d.block_time(lbt, self.config.getint("appt", "lunch_break"))
-            d.block_time(bnbt, self.config.getint("appt", "short_break"))
+            lbt = self.settings.appt.lunch_break_time
+            bnbt = self.settings.appt.before_noon_break_time
+            d.block_time(lbt, self.settings.appt.lunch_break)
+            d.block_time(bnbt, self.settings.appt.short_break)
 
             # show break as task if possible
             res_scheduled_tasks.append(
                 ScheduledTask(
                     datetime.combine(d.date, lbt),
                     Task("Lunch"),
-                    self.config.getint("appt", "lunch_break"),
+                    self.settings.appt.lunch_break,
                 )
             )
             res_scheduled_tasks.append(
                 ScheduledTask(
                     datetime.combine(d.date, bnbt),
                     Task("Break"),
-                    self.config.getint("appt", "short_break"),
+                    self.settings.appt.short_break,
                 )
             )
         return res_scheduled_tasks
@@ -180,16 +179,16 @@ class TaskScheduler:
             ],
         )
 
-        Logger.debug(
+        logger.debug(
             "schedule_everything.py: all tasks: {0} tasks".format(len(rows_sorted))
         )
 
         future_tasks, remaining_tasks = filter_tasks(
             rows_sorted,
-            lambda t: any(e in t.tags for e in self.parsed_config["tags_future"]),
+            lambda t: any(e in t.tags for e in self.settings.tags.tags_future),
         )
 
-        Logger.debug(
+        logger.debug(
             "schedule_everything.py: tasks: {0}, future tasks: {1}".format(
                 len(remaining_tasks), len(future_tasks)
             ),
@@ -197,7 +196,7 @@ class TaskScheduler:
 
         # ENH add break after ILM
         # TBD right location?
-        if bool(self.config.getint("appt", "short_break_after_ilm")):
+        if bool(self.settings.appt.short_break_after_ilm):
             pass
 
         # schedule all ILM tasks and tasks with end date
@@ -212,13 +211,13 @@ class TaskScheduler:
             flt_contains_end_date,
         ]
 
-        Logger.debug("schedule_everything.py: schedule filtered tasks")
+        logger.debug("schedule_everything.py: schedule filtered tasks")
         for f in filter_list:
             tasks_to_schedule, remaining_tasks = filter_tasks(remaining_tasks, f)
 
             # add by specified tag order
             rem_tasks = tasks_to_schedule
-            for oot in self.parsed_config["tag_order"]:
+            for oot in self.settings.tags.tag_order:
                 zt2s, rem_tasks = filter_tasks(rem_tasks, lambda e: oot in e.tags)
                 rt, rut = self.schedule_tasks(zt2s, start_date, end_date)
                 res_scheduled_tasks.extend(rt)
@@ -229,7 +228,7 @@ class TaskScheduler:
             res_unscheduled_tasks.extend(rut)
 
         # schedule the rest
-        Logger.debug(
+        logger.debug(
             "schedule_everything.py: schedule {0} remaining tasks".format(
                 len(remaining_tasks)
             )
@@ -239,7 +238,7 @@ class TaskScheduler:
         res_unscheduled_tasks.extend(rut)
 
         # schedule future tasks after all others if time left
-        Logger.debug("schedule_everything.py: schedule future")
+        logger.debug("schedule_everything.py: schedule future")
         rt, rut = self.schedule_tasks(future_tasks, start_date, end_date)
         res_scheduled_tasks.extend(rt)
         res_unscheduled_tasks.extend(rut)

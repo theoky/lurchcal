@@ -57,6 +57,13 @@ class Test(unittest.TestCase):
         self.assertEqual(task.start_date, date(2023, 12, 31))
         self.assertEqual(task.duration, 45.0)
 
+    def test_default_duration_tags_and_dates(self):
+        task = Task("Review notes @Deep @TEAM", start_date="2024-01-02", due_date="2024-02-03")
+        self.assertEqual(task.duration, 6)
+        self.assertEqual(task.tags, ["deep", "team"])
+        self.assertEqual(task.start_date, date(2024, 1, 2))
+        self.assertEqual(task.due_date, date(2024, 2, 3))
+
 
 if __name__ == "__main__":
     # import sys;sys.argv = ['', 'Test.testName']

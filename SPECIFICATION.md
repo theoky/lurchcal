@@ -13,15 +13,15 @@ Longer term the app should support richer task metadata, additional calendar pro
 ## Architectural Overview
 The system is a Kivy application (`src/LurchCalApp.py`) that orchestrates a workflow defined in `lurchcal/lurchcal_wf.py`. The workflow coordinates three subsystems:
 
-1. **Task ingestion** – `TaskParser` reads Zim’s SQLite database, creates `Task` objects, and resolves hierarchical metadata such as inherited durations and tags. Tasks longer than the configured split threshold are broken into subtasks. 
+1. **Task ingestion** – `TaskParser` reads Zim’s SQLite database, creates `Task` objects, and resolves hierarchical metadata such as inherited durations and tags. Tasks longer than the configured split threshold are broken into subtasks. It consumes UI-independent typed settings; Zim database access remains in the parser until AP2/AP3.
 2. **Scheduling** – `TaskScheduler` prepares `Day` buckets representing working time, blocks breaks and existing meetings, and assigns tasks according to priority/tag filters. Reserved slots become `ScheduledTask` instances that carry start time, duration, and source metadata. 
 3. **Calendar integration** – A `Calendar` implementation, selected via `CalendarFactory`, retrieves current appointments and optionally creates or deletes LurchCal events. Outlook automation uses `win32com`, while Google Calendar relies on the REST API. 
 
 `LurchCalApp` provides a minimal GUI with three actions: write a Zim schedule, create appointments, or remove previously generated appointments. Each action spawns a background thread, updates a progress bar through a callback, and renders unscheduled tasks in a `RecycleView`. 
 
 ## Data Flow
-1. **Configuration** – On startup the app loads Kivy’s `ConfigParser` from `lurchal.ini` and merges defaults defined in `build_config`. Parsed helper fields (tag lists, break times) live in `self.parsed_config`. 
-2. **Task retrieval** – `create_task_appointments` instantiates `TaskParser` with the user config, reads open tasks via `_read_zim_tasks`, builds a task tree with `build_tree`, and flattens it in priority order. Duration and tag metadata cascade from parent tasks to children. 
+1. **Configuration** – The Kivy app maintains the existing INI settings and defaults, then adapts them to immutable typed settings in `lurchcal.settings`. Comma-separated tag settings and configured break/start times are parsed in that configuration layer. Scheduling and parsing consume typed settings rather than Kivy configuration objects or an untyped parsed dictionary.
+2. **Task retrieval** – `create_task_appointments` instantiates `TaskParser` with typed settings, reads open tasks via `_read_zim_tasks`, builds a task tree with `build_tree`, and flattens it in priority order. Duration and tag metadata cascade from parent tasks to children.
 3. **Calendar snapshot** – The workflow authenticates to the selected provider, fetches upcoming events for the scheduling horizon, and filters out previously generated LurchCal meetings. 
 4. **Scheduling** – `TaskScheduler.schedule_everything` builds `Day` objects for the planning window, blocks meetings and breaks, and then iteratively reserves time for tasks ordered by `filter_list` and configured `tag_order`. Remaining capacity is offered to "future" tagged tasks. 
 5. **Outputs** – `write_to_zim_page` produces a Zim-formatted task list, grouping entries by day and embedding task metadata. When appointment creation is enabled, the calendar adapter deletes stale LurchCal items, then calls `create_appointments_4_tasks` to add new ones and tags each appointment with a LurchCal GUID for future cleanup. 
@@ -33,7 +33,7 @@ The system is a Kivy application (`src/LurchCalApp.py`) that orchestrates a work
 - **Calendar hygiene** – LurchCal appointments carry a GUID (`definitions.py`) so cleanup can safely delete only owned entries. Busy status is set according to tags indicating forced appointments or time blocking. 
 
 ## External Dependencies
-- **Kivy** for GUI, configuration, and logging.
+- **Kivy** for GUI and persisted settings UI. Core settings are UI-independent dataclasses; non-UI modules use Python standard logging.
 - **durations-nlp** for human-friendly duration parsing.
 - **bigtree** for handling task hierarchies.
 - **multisort** for deterministic multi-key sorting.
@@ -44,7 +44,7 @@ The system is a Kivy application (`src/LurchCalApp.py`) that orchestrates a work
 
 ## Current Limitations
 - Error handling is minimal; failures in background threads surface only as strings in the UI. Outlook-specific dependencies prevent cross-platform execution without guards. 
-- Tests are largely absent despite the presence of a `tests` directory, and much of the scheduling logic depends on integration scenarios that are hard to simulate.
+- Calendar appointment blocking currently processes only appointments represented as all-day events in the scheduler; this existing limitation is retained in AP1.
 - Configuration assumes synchronous execution and blocking UI during heavy operations.
 
 ## Proposed Next Steps
