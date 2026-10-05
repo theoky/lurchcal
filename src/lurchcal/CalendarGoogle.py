@@ -4,9 +4,11 @@
 """
 """
 import datetime
+from datetime import timezone
 import logging
 import os.path
 from dateutil import parser
+from zoneinfo import ZoneInfo
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -29,6 +31,7 @@ class CalendarGoogle(Calendar):
     def __init__(self) -> None:
         self.creds = None
         self.events = []
+        self.response_timezone = None
 
     def authenticate(self):
         self.creds = None
@@ -51,13 +54,15 @@ class CalendarGoogle(Calendar):
             with open("token.json", "w") as token:
                 token.write(self.creds.to_json())
 
-    def get_appointments(self, begin, end):
+    def get_appointments(self, begin, end, response_timezone=None):
         try:
+            self.response_timezone = response_timezone
             service = build("calendar", "v3", credentials=self.creds)
 
             # Call the Calendar API
-            begin_str = begin.isoformat() + "Z"
-            end_str = end.isoformat() + "Z"
+            # Web calendar ranges are local wall times; Google expects UTC instants.
+            begin_str = begin.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+            end_str = end.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
             # now = datetime.datetime.utcnow().isoformat() + "Z"  # 'Z' indicates UTC time
 
@@ -69,6 +74,7 @@ class CalendarGoogle(Calendar):
                     timeMax=end_str,
                     singleEvents=True,
                     orderBy="startTime",
+                    **({"timeZone": response_timezone} if response_timezone else {}),
                 )
                 .execute()
             )
@@ -98,16 +104,30 @@ class CalendarGoogle(Calendar):
         ga = GenAppointment()
         ga.summary = appt["summary"].lower()
 
-        ga.start_datetime = appt["start"].get("dateTime", appt["start"].get("date"))
-        ga.parsedDateTime_start = parser.parse(ga.start_datetime)
+        start = appt["start"]
+        ga.start_datetime = start.get("dateTime", start.get("date"))
+        ga.parsedDateTime_start = self._parse_event_datetime(
+            ga.start_datetime, start.get("timeZone")
+        )
 
-        ga.end_datetime = appt["end"].get("dateTime", appt["end"].get("date"))
-        ga.parsedDateTime_end = parser.parse(ga.end_datetime)
+        end = appt["end"]
+        ga.end_datetime = end.get("dateTime", end.get("date"))
+        ga.parsedDateTime_end = self._parse_event_datetime(
+            ga.end_datetime, end.get("timeZone")
+        )
 
         ga.duration = (ga.parsedDateTime_end - ga.parsedDateTime_start).seconds / 60
 
         ga.rel_day = ga.parsedDateTime_start.date()
         return ga
+
+    def _parse_event_datetime(self, value, event_timezone=None):
+        parsed = parser.parse(value)
+        if parsed.tzinfo is None:
+            timezone_name = event_timezone or self.response_timezone
+            if timezone_name:
+                parsed = parsed.replace(tzinfo=ZoneInfo(timezone_name))
+        return parsed
 
     def create_appointments_4_tasks(self, scheduled_tasks):
         try:

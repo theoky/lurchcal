@@ -1,0 +1,36 @@
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>LurchCal settings</title><link rel="stylesheet" href="/static/app.css?v=20261005-3"><script defer src="/static/htmx.min.js?v=20261005-3"></script><script defer src="/static/alpine.min.js?v=20261005-3"></script></head>
+<body><header><h1>Settings</h1><nav><a href="/">Schedule</a> <a href="/settings">Settings</a></nav></header><main>
+<section><h2>LurchCal</h2><form hx-post="/ui/settings/save-and-test-lurchcal" hx-target="#lurchcal-feedback" hx-swap="innerHTML">
+<fieldset class="settings-group"><legend>Appointments</legend>
+<label>Task Server URL <input type="url" name="task_server_url" required value="{{ settings.task_server_url }}"></label>
+<label>Calendar provider <select name="calendar_provider"><option value="outlook" {% if settings.calendar_provider == 'outlook' %}selected{% endif %}>Outlook</option><option value="google" {% if settings.calendar_provider == 'google' %}selected{% endif %}>Google Calendar</option></select></label>
+<label>Days for scheduling <input type="number" name="days_for_scheduling" min="1" max="90" required value="{{ settings.days_for_scheduling }}"></label>
+<label>Minimum task duration for an appointment (minutes) <input type="number" name="min_task_len_4_appt" min="0" required value="{{ settings.min_task_len_4_appt }}"></label>
+<label>Lunch break duration (minutes) <input type="number" name="lunch_break" min="0" required value="{{ settings.lunch_break }}"></label>
+<label>Short break duration (minutes) <input type="number" name="short_break" min="0" required value="{{ settings.short_break }}"></label>
+<label><input type="checkbox" name="short_break_after_ilm" value="true" {% if settings.short_break_after_ilm %}checked{% endif %}> Break after ILM tasks</label>
+<label>Lunch break time <input type="time" name="lunch_break_time" required value="{{ settings.lunch_break_time }}"></label>
+<label>Before-noon break time <input type="time" name="before_noon_break_time" required value="{{ settings.before_noon_break_time }}"></label>
+<label>Start of day <input type="time" name="start_of_day" required value="{{ settings.start_of_day }}"></label>
+<label>Hours per day <input type="number" name="hours_per_day" min="1" max="24" required value="{{ settings.hours_per_day }}"></label>
+</fieldset>
+<fieldset class="settings-group"><legend>Tasks</legend>
+<label>Default task duration (minutes) <input type="number" name="def_task_len" min="1" required value="{{ settings.def_task_len }}"></label>
+<label>Task duration for splitting (minutes) <input type="number" name="min_task_split" min="1" required value="{{ settings.min_task_split }}"></label>
+</fieldset>
+<fieldset class="settings-group"><legend>Tags</legend>
+<label>ILM tag <input type="text" name="ilm" required value="{{ settings.ilm }}"></label>
+<label>Tags for sorting (comma separated) <input type="text" name="tag_order" value="{{ settings.tag_order }}"></label>
+<label>Tags for projects (comma separated) <input type="text" name="tag_projects" value="{{ settings.tag_projects }}"></label>
+<label>Appointment summaries to ignore (comma-separated patterns) <input type="text" name="tag_ignore_appt" value="{{ settings.tag_ignore_appt }}"></label>
+<label>Tags that always create appointments <input type="text" name="tags_to_create_appt" value="{{ settings.tags_to_create_appt }}"></label>
+<label>Future-task tags <input type="text" name="tags_future" value="{{ settings.tags_future }}"></label>
+<label>Tags that block time <input type="text" name="tags_to_block_time" value="{{ settings.tags_to_block_time }}"></label>
+</fieldset>
+<button type="submit">Save and test LurchCal settings</button></form><div id="lurchcal-feedback" aria-live="polite"></div></section>
+<section><h2>Task Server / Zim source</h2><p>Paths refer to files on the computer running the Task Server. They are validated by that server; the browser does not access them.</p>
+<form hx-post="/ui/settings/task-source" hx-target="#source-feedback" hx-swap="innerHTML">
+<label>Zim database path <input type="text" name="path_db" required value="{{ source.path_db }}" autocomplete="off"></label>
+<label>Schedule page path <input type="text" name="path_page" required value="{{ source.path_page }}" autocomplete="off"></label>
+<button type="submit">Save and validate source</button><button type="button" hx-post="/ui/settings/validate-source" hx-include="closest form" hx-target="#source-feedback">Test source</button></form><div id="source-feedback" aria-live="polite"></div></section>
+</main></body></html>

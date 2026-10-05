@@ -2,6 +2,10 @@
 
 ## Introduction
 
+## Browser workflow (AP5)
+
+Start the separate Task Server (`python -m task_server`) and then LurchCal Web Server (`python -m lurchcal.web_server`) with the project's Python environment active and `src` on `PYTHONPATH`. Open `http://127.0.0.1:8000`. The Schedule page offers create/publish, create-and-add-calendar-appointments, and remove-LurchCal-appointments actions. Long operations run as background jobs; the page polls job progress and displays results and any unscheduled tasks. Use Settings to enter the LurchCal Task Server URL, choose Outlook or Google Calendar, set the scheduling horizon, and enter the Task Server's Zim database and schedule-page paths. Save validates typed LurchCal settings and tests provider/service availability. Source paths are text inputs because they are paths on the Task Server's machine; the browser never selects or reads those files. Validate the Task Server/Zim source before scheduling. The Calendar page supports month, week and day views, requests data only for the visible range, and is view-only. Frontend assets are pinned and served locally.
+
 ## Adding information to tasks
 
 Task in ZIM already have meta information:

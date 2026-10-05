@@ -19,6 +19,9 @@ def _serialize(value):
         return {"start": _serialize(value.start), "duration": value.duration,
                 "description": value.task.description, "priority": value.task.prio,
                 "tags": list(value.task.tags), "source_name": value.task.source_name}
+    if hasattr(value, "start") and hasattr(value, "duration"):
+        return {"start": _serialize(value.start), "duration": value.duration,
+                "description": getattr(value.task, "description", str(value))}
     if hasattr(value, "isoformat"):
         return value.isoformat()
     if hasattr(value, "description"):

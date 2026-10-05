@@ -1,5 +1,17 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><title>LurchCal</title></head>
-<body><main><h1>LurchCal Web Backend</h1>
-<p>The local backend is running. Browser workflow and calendar UI are planned for AP5.</p>
-<p><a href="/docs">Diagnostic API documentation</a></p></main></body></html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>LurchCal</title>
+<link rel="stylesheet" href="/static/app.css?v=20261005-4">
+<script defer src="/static/htmx.min.js?v=20261005-4"></script><script defer src="/static/alpine.min.js?v=20261005-4"></script><script defer src="/static/fullcalendar/index.global.min.js?v=20261005-4"></script><script defer src="/static/app.js?v=20261005-4"></script></head>
+<body x-data="{busy:false}"><header><h1>LurchCal</h1><nav><a href="/">Schedule</a> <a href="/settings">Settings</a></nav></header>
+<main>
+<p class="muted">AP5 browser workflow</p>
+<section><h2>Schedule actions</h2><div class="actions">
+<form hx-post="/ui/jobs/publish" hx-target="#job-status" hx-swap="innerHTML" @submit="if(busy){$event.preventDefault()}else{busy=true}"><button type="submit" :disabled="busy">Create and publish schedule</button></form>
+<form hx-post="/ui/jobs/schedule" hx-target="#job-status" hx-swap="innerHTML" @submit="if(busy){$event.preventDefault()}else{busy=true}"><input type="hidden" name="create_calendar_appointments" value="true"><button type="submit" :disabled="busy">Create schedule and calendar appointments</button></form>
+<form hx-post="/ui/jobs/remove" hx-target="#job-status" hx-swap="innerHTML" hx-confirm="Remove LurchCal-created appointments in the scheduling range?" @submit="if(busy){$event.preventDefault()}else{busy=true}"><button class="danger" type="submit" :disabled="busy">Remove LurchCal appointments</button></form></div>
+<div id="job-status" aria-live="polite"><p>Choose an action to start a background job.</p></div></section>
+<section><h2>Tasks and latest results</h2><p>Tasks are loaded from the configured source.</p>
+<div hx-get="/ui/tasks" hx-trigger="load" hx-swap="innerHTML"><p>Loading task overview…</p></div></section>
+<div id="results" hx-get="/ui/results" hx-trigger="load, schedule-updated from:body" hx-swap="innerHTML"><p>Loading latest schedule results…</p></div>
+<section><h2>Calendar</h2><p class="legend"><span class="commitment">Existing calendar commitments</span> <span class="planned">Planned LurchCal tasks</span></p><div id="calendar" data-events-url="/api/v1/calendar/events"></div><noscript>Enable JavaScript to view calendar events.</noscript></section>
+</main><footer>Local view-only calendar · Calendar event loading requires a working provider.</footer></body></html>
