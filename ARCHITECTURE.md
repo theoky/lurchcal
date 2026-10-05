@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document defines the target architecture for the migration of LurchCal from a Kivy desktop UI with direct Zim access to a local browser application with an independent task service.
+This document defines LurchCal's local browser architecture with an independent task service, and records the migration path from the former Kivy desktop UI with direct Zim access.
 
 It is an architectural contract for humans and coding agents. During the migration, implementation details may evolve, but the invariants in section 4 must not be violated without explicitly changing this document first.
 
@@ -22,17 +22,17 @@ The following decisions are fixed for the current migration:
 
 ## 3. Current architecture
 
-The current user workflow is centered around `src/LurchCalApp.py` and `src/lurchcal/lurchcal_wf.py`. The Kivy workflow uses the independent `src/task_server/` process for task retrieval and schedule publication; calendar operations remain in LurchCal.
+The user workflow is centered on the browser, LurchCal Web Server, and `src/lurchcal/lurchcal_wf.py`. The Web Server runs in its own process and calls the independent `src/task_server/` process through `TaskServerClient`; calendar operations remain in LurchCal's Python adapters.
 
 ```text
-Kivy UI (src/LurchCalApp.py)                  Task Server
-        |                                      ^
-        v                                      |
-lurchcal_wf.py -- TaskServerClient -- versioned REST API
-   |---- TaskParser / TaskScheduler / Day / Task  |-- ZimTaskSource
-   `---- CalendarFactory -----------------> Outlook COM / Google Calendar
-                                                  |-- SQLite tasks (read-only)
-                                                  `-- schedule publication
+Browser                                      Task Server
+   |                                             ^
+   v                                             |
+LurchCal Web Server -> SchedulingService -> TaskServerClient -- versioned REST API
+                           |                          |-- ZimTaskSource
+                           |                          |-- SQLite tasks (read-only)
+                           |                          `-- schedule publication
+                           `-> CalendarFactory -> Outlook COM / Google Calendar
 ```
 
 Important current couplings:
@@ -40,7 +40,7 @@ Important current couplings:
 - `TaskServerClient.py` retrieves source-neutral task DTOs and publishes generated schedules over HTTP.
 - `lurchcal_wf.py` orchestrates Task Server access, local interpretation/scheduling, calendar operations, and progress callbacks.
 - Zim database and schedule-page access are owned by the Task Server; LurchCal configuration contains the Task Server URL, not Zim paths.
-- `LurchCalApp.py` owns the UI and adapts its existing settings to typed core settings.
+- The browser UI is served by FastAPI/Jinja2 and uses local HTMX, Alpine.js, and FullCalendar assets.
 - Outlook uses `win32com.client`; it must continue to execute in local Python and must not move into browser JavaScript.
 - The existing UI starts work in background threads. Any new background-job implementation must respect Outlook COM thread affinity.
 
@@ -289,7 +289,7 @@ warnings
 statistics
 ```
 
-Progress reporting should use application-level progress events/callbacks that are not tied to Kivy widgets.
+Progress reporting uses application-level events/callbacks and is not tied to a particular UI.
 
 ## 8. Configuration architecture
 
@@ -315,7 +315,7 @@ Examples:
 - Zim schedule-page path;
 - optional future task-source settings.
 
-Typed configuration objects should be introduced between persistence and domain logic. Domain code must not receive Kivy `ConfigParser` instances.
+Typed configuration objects separate persistence from domain logic. Domain code does not receive UI framework configuration objects.
 
 ## 9. Web UI architecture
 
@@ -332,7 +332,7 @@ Do not build a SPA state-management layer in Alpine.js.
 
 ### 9.2 Main page
 
-The browser UI must initially reach parity with the Kivy UI:
+The browser UI provides the primary user workflow:
 
 - create schedule / publish schedule page;
 - create schedule and calendar appointments;
@@ -380,16 +380,16 @@ Use a strangler-style migration:
 
 ```text
 Stage A
-Kivy -> LurchCal core -> Zim
+Desktop UI -> LurchCal core -> Zim
 
 Stage B
-Kivy -> LurchCal core -> Task Server -> Zim
+Desktop UI -> LurchCal core -> Task Server -> Zim
 
 Stage C
 Browser -> LurchCal web/core -> Task Server -> Zim
 
 Stage D
-Kivy removed
+Legacy desktop UI removed; browser is the default
 ```
 
 Do not change the task-source boundary and user interface in the same work package.
@@ -420,4 +420,4 @@ The architecture should allow later evolution, but agents must not implement the
 - `TaskParser._read_zim_tasks()` currently filters `status = 0`, `not waiting`, and `start <= date()` and orders by due date, priority, and start date.
 - `write_to_zim_page()` in `lurchcal_wf.py` defines the current schedule-page output format.
 - `CalendarOutlook` uses `win32com.client` and `CalendarGoogle` uses Google's API libraries.
-- Kivy must remain operational through the end of work package AP3; it is removed only in AP6.
+- The legacy desktop UI was retained through AP5 and removed in AP6 after browser parity was verified.

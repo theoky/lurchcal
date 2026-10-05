@@ -1,4 +1,4 @@
-"""Typed, UI-independent settings and adapter for the existing INI config."""
+"""Typed, UI-independent settings adapted from standard INI configuration."""
 from configparser import ConfigParser as IniConfigParser
 from dataclasses import dataclass
 from datetime import datetime, time
@@ -62,7 +62,7 @@ class AppSettings:
 
 
 def settings_from_config(config: ConfigReader) -> AppSettings:
-    """Adapt an existing Kivy or stdlib ConfigParser to typed settings."""
+    """Adapt a standard ConfigParser-compatible object to typed settings."""
     getint = config.getint
     get = config.get
 
@@ -130,7 +130,7 @@ def read_settings(path: str) -> AppSettings:
 def migrate_legacy_zim_settings(
     source_path: str | None, task_server_config_path: str
 ) -> bool:
-    """One-time bridge: copy legacy [zim] paths into Task Server INI if unset."""
+    """Copy legacy [zim] paths into Task Server INI if they are not set."""
     if not source_path:
         return False
     legacy = IniConfigParser()
