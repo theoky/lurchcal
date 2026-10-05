@@ -30,8 +30,10 @@ At the start of AP1, establish and record the real baseline in a proper Python 3
 | AP2 | Independent Task Server | DONE | AP1 | Zim tasks and schedule publication available through versioned local REST API |
 | AP3 | LurchCal consumes Task Server | DONE | AP2 | Kivy app still works, but LurchCal contains no direct Zim access |
 | AP4 | LurchCal web backend and job model | DONE | AP3 | FastAPI/Jinja2 backend can run workflows and expose settings/jobs/calendar data |
-| AP5 | HTMX/Alpine/FullCalendar browser UI | NOT STARTED | AP4 | Browser has functional parity with Kivy plus calendar view |
+| AP5 | HTMX/Alpine/FullCalendar browser UI | DONE | AP4 | Browser has functional parity with Kivy plus calendar view |
 | AP6 | Cutover, launcher, Kivy removal, cleanup | NOT STARTED | AP5 | Browser version is default; Kivy removed; docs/tests updated |
+
+AP5 completion note (2026-10-05): Browser workflow, full persisted-settings parity, job fragments, task/results panels, normalized calendar-range support, local frontend assets, and route tests are implemented. Automated tests pass, and the user has interactively verified that the web UI provides the functionality required from the former Kivy app. AP5 is complete; AP6 cutover and Kivy removal remain separate work.
 
 Allowed status values:
 

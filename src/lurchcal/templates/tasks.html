@@ -1,0 +1,1 @@
+<div><p>{{ count }} open tasks returned.</p>{% if tasks %}<div class="task-list-scroll" tabindex="0" aria-label="Open tasks"><ul>{% for task in tasks %}<li>{{ task.description }}</li>{% endfor %}</ul></div>{% else %}<p>No tasks were returned by the configured source.</p>{% endif %}</div>

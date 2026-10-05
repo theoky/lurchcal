@@ -1,0 +1,8 @@
+Browser assets are vendored for offline local use:
+htmx.org 2.0.4 (0BSD) — htmx.min.js, LICENSE-htmx.txt
+Alpine.js 3.14.9 (MIT) — alpine.min.js
+FullCalendar Standard 6.1.15 (MIT) — fullcalendar/index.global.min.js, LICENSE-fullcalendar.md
+
+The FullCalendar standard global bundle includes day-grid and time-grid views.
+Only the standard bundle is loaded; extra build-workspace files are not required
+for runtime use. Layout and event colors are authored in app.css.

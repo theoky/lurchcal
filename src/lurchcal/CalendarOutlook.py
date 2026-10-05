@@ -21,6 +21,8 @@ logger = logging.getLogger(__name__)
 
 
 class CalendarOutlook(Calendar):
+    # Outlook COM returns naive datetimes in the machine's local timezone.
+    uses_local_wall_time = True
 
     def __init__(self) -> None:
         self.outlook = None
@@ -39,6 +41,11 @@ class CalendarOutlook(Calendar):
 
     def get_appointments(self, begin, end):
 
+        logger.info(
+            "Outlook calendar query bounds: begin=%s end=%s local_timezone=%s",
+            begin.isoformat(), end.isoformat(), datetime.now().astimezone().tzinfo,
+        )
+
         # begin = begin.astimezone(timezone.utc)
         # end = end.astimezone(timezone.utc)
 
@@ -54,6 +61,8 @@ class CalendarOutlook(Calendar):
             + end.strftime("%d.%m.%Y %I:%M %p")
             + "'"
         )
+        self.last_restriction = restriction1
+        logger.info("Outlook calendar restriction: %s", restriction1)
         cal = cal.Restrict(restriction1)
 
         return cal
@@ -83,6 +92,18 @@ class CalendarOutlook(Calendar):
 
         ga.parsedDateTime_start = appt.Start
         ga.parsedDateTime_end = appt.End
+
+        logger.info(
+            "Outlook COM appointment timestamps: start=%s (type=%s tzinfo=%s) "
+            "end=%s (type=%s tzinfo=%s) machine_timezone=%s",
+            ga.parsedDateTime_start,
+            type(ga.parsedDateTime_start).__name__,
+            getattr(ga.parsedDateTime_start, "tzinfo", None),
+            ga.parsedDateTime_end,
+            type(ga.parsedDateTime_end).__name__,
+            getattr(ga.parsedDateTime_end, "tzinfo", None),
+            datetime.now().astimezone().tzinfo,
+        )
 
         ga.all_day_event = appt.AllDayEvent
         ga.duration = appt.Duration
