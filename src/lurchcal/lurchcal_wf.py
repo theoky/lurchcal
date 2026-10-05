@@ -182,40 +182,5 @@ class SchedulingService:
         emit({"stage": "complete", "message": "LurchCal appointments removed"})
 
 
-def remove_appointments(cb, cal, settings):
-    
-    if not cal:
-        app_type = settings.appt.app
-        
-        cal = CalendarFactory.create_calendar(app_type)
-        cal.authenticate()
-
-    # remove all appointments which are from lurchcal, so that they are not rescheduled
-    start_delete_date = datetime.now().replace(
-        hour=0, minute=0, second=0, microsecond=0
-    )
-    end_date = start_delete_date + timedelta(
-        days=settings.appt.days_for_scheduling
-    )
-    start_delete_date = start_delete_date + timedelta(days=-settings.appt.days_for_scheduling)
-
-    appointments_del_range = cal.get_appointments(start_delete_date, end_date)
-    cal.delete_lurchcal_meetings(appointments_del_range)
-    
-    cb()
-
-
-def create_task_appointments(cb, create_appts, settings):
-    """Legacy Kivy adapter for the UI-independent SchedulingService."""
-    events = []
-    def legacy_progress(event):
-        events.append(event)
-        cb()
-    result = SchedulingService(settings).create_schedule(
-        create_calendar_appointments=create_appts, publish_schedule=True,
-        progress=legacy_progress)
-    return result.unscheduled_tasks
-
-
 def _coerce_settings(settings):
     return settings if isinstance(settings, AppSettings) else settings_from_config(settings)

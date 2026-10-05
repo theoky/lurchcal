@@ -1,4 +1,4 @@
-"""Kivy workflow boundary tests without requiring a running calendar provider."""
+"""Scheduling service boundary tests without a running calendar provider."""
 from datetime import date, datetime, time
 from unittest.mock import Mock
 
@@ -17,7 +17,7 @@ def settings():
     )
 
 
-def test_kivy_workflow_retrieves_dtos_and_publishes_schedule(monkeypatch):
+def test_scheduling_service_retrieves_dtos_and_publishes_schedule(monkeypatch):
     dto = {
         "id": "task-1", "parent_id": None, "description": "Work ~30m~ @focus",
         "priority": 1, "start_date": "2000-01-01", "due_date": "2026-10-05",
@@ -39,15 +39,15 @@ def test_kivy_workflow_retrieves_dtos_and_publishes_schedule(monkeypatch):
     scheduler.schedule_everything.return_value = (scheduled, unscheduled)
     monkeypatch.setattr(lurchcal_wf, "TaskScheduler", lambda _: scheduler)
 
-    ticks = []
-    actual = lurchcal_wf.create_task_appointments(lambda: ticks.append(1), False, settings())
-    assert actual == unscheduled
+    events = []
+    result = lurchcal_wf.SchedulingService(settings()).create_schedule(progress=events.append)
+    assert result.unscheduled_tasks == unscheduled
     service.get_tasks.assert_called_once_with(date.today())
     service.publish_schedule.assert_called_once_with(scheduled)
-    assert len(ticks) >= 5
+    assert [event["stage"] for event in events][-1] == "complete"
 
 
-def test_kivy_workflow_surfaces_server_failure_before_calendar_creation(monkeypatch):
+def test_scheduling_service_surfaces_server_failure_before_calendar_creation(monkeypatch):
     client = Mock()
     client.get_tasks.side_effect = TaskServerUnavailable("Task Server offline")
     monkeypatch.setattr(lurchcal_wf, "TaskServerClient", lambda _: client)
@@ -56,7 +56,7 @@ def test_kivy_workflow_surfaces_server_failure_before_calendar_creation(monkeypa
     calendar_factory = Mock()
     monkeypatch.setattr(lurchcal_wf, "CalendarFactory", calendar_factory)
     try:
-        lurchcal_wf.create_task_appointments(lambda: None, False, settings())
+        lurchcal_wf.SchedulingService(settings()).create_schedule()
     except TaskServerUnavailable as exc:
         assert "offline" in str(exc)
     else:
@@ -94,12 +94,14 @@ def test_scheduling_service_is_ui_independent_and_returns_structured_result(monk
 
 def test_remove_appointments_action_remains_calendar_only(monkeypatch):
     calendar = Mock()
-    monkeypatch.setattr(lurchcal_wf.CalendarFactory, "create_calendar", lambda _: calendar)
-    ticks = []
-    lurchcal_wf.remove_appointments(lambda: ticks.append(1), None, settings())
+    service = lurchcal_wf.SchedulingService(
+        settings(), calendar_factory=Mock(create_calendar=lambda _: calendar)
+    )
+    events = []
+    service.remove_calendar_appointments(progress=events.append)
     calendar.authenticate.assert_called_once_with()
     calendar.delete_lurchcal_meetings.assert_called_once()
-    assert ticks == [1]
+    assert events[-1]["stage"] == "complete"
 
 
 def _service_init(instance, settings_value, task_client):

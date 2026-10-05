@@ -14,11 +14,11 @@ Only one work package should normally be implemented at a time. Do not start the
 - Existing Zim schedule-page publication remains available as a separate capability.
 - Browser UI uses FastAPI/Jinja2 + HTMX + Alpine.js.
 - Calendar visualization uses vanilla FullCalendar.
-- Kivy remains temporarily during the backend migration and is removed only after browser feature parity.
+- The browser is the default UI after AP6; the former Kivy UI was removed only after browser feature parity.
 
 ## Baseline note
 
-The repository documents Python 3.11 as the runtime. A test run in the artifact-preparation environment (Python 3.13) could not collect the suite because that environment did not have `durations_nlp` or Kivy installed. This is **not** recorded as a product defect.
+The repository documents Python 3.11 as the runtime. A test run in the artifact-preparation environment (Python 3.13) could not collect the suite because that environment did not have required project dependencies installed. This is **not** recorded as a product defect.
 
 At the start of AP1, establish and record the real baseline in a proper Python 3.11 project environment with the repository requirements installed.
 
@@ -28,12 +28,14 @@ At the start of AP1, establish and record the real baseline in a proper Python 3
 |---|---|---|---|---|
 | AP1 | Core decoupling and regression baseline | DONE | none | Scheduling/domain code no longer depends on Kivy config/logging |
 | AP2 | Independent Task Server | DONE | AP1 | Zim tasks and schedule publication available through versioned local REST API |
-| AP3 | LurchCal consumes Task Server | DONE | AP2 | Kivy app still works, but LurchCal contains no direct Zim access |
+| AP3 | LurchCal consumes Task Server | DONE | AP2 | Legacy app consumed Task Server; LurchCal contained no direct Zim access |
 | AP4 | LurchCal web backend and job model | DONE | AP3 | FastAPI/Jinja2 backend can run workflows and expose settings/jobs/calendar data |
-| AP5 | HTMX/Alpine/FullCalendar browser UI | DONE | AP4 | Browser has functional parity with Kivy plus calendar view |
-| AP6 | Cutover, launcher, Kivy removal, cleanup | NOT STARTED | AP5 | Browser version is default; Kivy removed; docs/tests updated |
+| AP5 | HTMX/Alpine/FullCalendar browser UI | DONE | AP4 | Browser has functional parity with legacy UI plus calendar view |
+| AP6 | Cutover, launcher, Kivy removal, cleanup | DONE | AP5 | Browser version is default; Kivy removed; docs/tests updated |
 
 AP5 completion note (2026-10-05): Browser workflow, full persisted-settings parity, job fragments, task/results panels, normalized calendar-range support, local frontend assets, and route tests are implemented. Automated tests pass, and the user has interactively verified that the web UI provides the functionality required from the former Kivy app. AP5 is complete; AP6 cutover and Kivy removal remain separate work.
+
+AP6 completion note (2026-10-05): AP5 records the user's interactive browser parity verification; current route/template coverage also confirms the listed actions, settings, results, and calendar UI. Removed the Kivy application, settings JSON/assets, runtime dependencies, and compatibility-only workflow adapters. Added a Windows launcher that activates the configured Python environment, reuses existing service ports, starts missing localhost services, waits for web readiness, and opens the browser. Documented launcher shutdown/port configuration and the final architecture. Python 3.11.11 full suite: `python -m pytest -q` — 91 passed, 1 Starlette/httpx deprecation warning; `python -m compileall -q src tests` and `git diff --check` passed. Outlook and interactive Windows launcher verification were not performed in this session.
 
 Allowed status values:
 
