@@ -2,13 +2,13 @@
 
 ## 1. Purpose
 
-This document defines LurchCal's local browser architecture with an independent task service, and records the migration path from the former Kivy desktop UI with direct Zim access.
+This document defines LurchCal's local browser architecture with an independent task service.
 
 It is an architectural contract for humans and coding agents. During the migration, implementation details may evolve, but the invariants in section 4 must not be violated without explicitly changing this document first.
 
 ## 2. Confirmed decisions
 
-The following decisions are fixed for the current migration:
+The following decisions define the current architecture:
 
 1. The **Task Server is a separate local process**.
 2. LurchCal remains a **single-user local application** for now.
@@ -18,7 +18,7 @@ The following decisions are fixed for the current migration:
 6. The browser UI will use **FastAPI + Jinja2 + HTMX + Alpine.js** rather than Svelte/SvelteKit for this migration.
 7. A calendar view is implemented with **FullCalendar (vanilla JavaScript)**, using LurchCal HTTP endpoints for event data.
 8. Both Python services bind to **127.0.0.1 by default**. Authentication and TLS are out of scope while the application remains local-only.
-9. The migration is incremental: first decouple Zim, then introduce the browser UI, and only then remove Kivy.
+9. The browser UI is the user interface; task-source access is isolated in the separate Task Server.
 
 ## 3. Current architecture
 
@@ -46,7 +46,7 @@ Important current couplings:
 
 ## 4. Architectural invariants
 
-These rules are mandatory throughout and after the migration.
+These rules are mandatory for the application architecture.
 
 ### 4.1 Zim isolation
 
@@ -78,7 +78,6 @@ This writes a schedule representation through the configured task source but doe
 
 Scheduling-domain code must not depend on:
 
-- Kivy;
 - FastAPI;
 - Jinja2;
 - HTMX;

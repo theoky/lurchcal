@@ -3,11 +3,11 @@
 ## Scope
 These rules apply to the entire repository unless a nested `AGENTS.md` overrides them.
 
-## Migration architecture contract
+## Architecture contract
 
 Before making architectural changes, read `ARCHITECTURE.md` and `MIGRATION.md`.
 
-During the current migration:
+For all implementation work:
 
 - Preserve existing scheduling semantics unless a task explicitly asks to change them.
 - LurchCal must not gain new direct Zim dependencies. The target architecture isolates all Zim database/page access in the separate Task Server.
@@ -16,10 +16,8 @@ During the current migration:
 - The Task Server is a separate local process.
 - Both the Task Server and LurchCal Web Server bind to `127.0.0.1` by default.
 - The browser communicates with the LurchCal Web Server, not directly with the Task Server.
-- Scheduling/domain code must not depend on Kivy, FastAPI, Jinja2, HTMX, Alpine.js, or FullCalendar.
+- Scheduling/domain code must not depend on FastAPI, Jinja2, HTMX, Alpine.js, or FullCalendar.
 - Platform-specific calendar dependencies must remain inside calendar adapters or narrow platform integration boundaries.
-- Keep Kivy functional through AP3/AP4/AP5 as described in `MIGRATION.md`; remove it only during AP6 after browser parity is verified.
-- Implement one migration work package at a time. Do not opportunistically start subsequent packages.
 
 ## Documentation Expectations
 - Update `SPECIFICATION.md` whenever you modify the scheduling workflow, task parsing, calendar integrations, or service boundaries so the architecture description stays accurate.
@@ -30,7 +28,7 @@ During the current migration:
 ## Code Style and Quality
 - Favor small, testable functions. When touching scheduling logic, add or update automated tests under `tests/` to cover new edge cases.
 - Avoid adding platform-specific dependencies outside the calendar adapters; guard them behind provider checks.
-- Use Python standard `logging` in non-UI/core/service code. Kivy logging may remain only in legacy Kivy UI code while that UI still exists.
+- Use Python standard `logging` in non-UI/core/service code.
 - Keep configuration persistence separate from typed configuration consumed by domain/application code.
 - Reuse the deterministic per-test SQLite fixture approach in `tests/zim_test_utils.py` and `tests/conftest.py`; do not add a shared mutable SQLite test database.
 

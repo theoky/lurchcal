@@ -1,7 +1,7 @@
 # LurchCal Product Specification
 
 ## Vision and Scope
-LurchCal is a desktop assistant that converts task data maintained in [Zim Desktop Wiki](https://zim-wiki.org/) into a concrete work schedule and optionally pushes the resulting focus blocks into a connected calendar. The application aims to automate the "create calendar events from tasks" workflow so that the user can defend focus time without manually copy/pasting tasks. The tool runs fully on the user’s machine to avoid cloud dependencies and currently targets Windows (Outlook) with experimental Google Calendar support. 
+LurchCal is a local browser application that converts task data maintained in [Zim Desktop Wiki](https://zim-wiki.org/) into a concrete work schedule and optionally pushes the resulting focus blocks into a connected calendar. The application aims to automate the "create calendar events from tasks" workflow so that the user can defend focus time without manually copy/pasting tasks. The tool runs fully on the user’s machine to avoid cloud dependencies and currently targets Windows (Outlook) with experimental Google Calendar support.
 
 The immediate scope is:
 - Parse actionable tasks from the user’s Zim task database.
@@ -11,16 +11,16 @@ The immediate scope is:
 Longer term the app should support richer task metadata, additional calendar providers, more advanced scheduling constraints, and guardrails for conflicting appointments.
 
 ## Architectural Overview
-Kivy remains operational as the transition fallback (`src/LurchCalApp.py`). A UI-independent `SchedulingService` in `lurchcal/lurchcal_wf.py` now provides structured schedule results and semantic progress events to both Kivy's compatibility adapter and the local FastAPI backend (`lurchcal.web_app`). The backend uses Jinja2 for its minimal diagnostic page, exposes asynchronous in-memory workflow jobs, settings delegation, and normalized read-only calendar events. The browser feature UI remains AP5. LurchCal uses a separate local Task Server (`src/task_server/`) for source-neutral task retrieval and schedule publication; the Task Server alone owns Zim database and schedule-page access.
+The local FastAPI application (`lurchcal.web_app`) uses Jinja2, HTMX, and Alpine.js for the browser interface and exposes asynchronous in-memory workflow jobs, settings delegation, and normalized read-only calendar events. A UI-independent `SchedulingService` in `lurchcal/lurchcal_wf.py` provides structured schedule results and semantic progress events. LurchCal uses a separate local Task Server (`src/task_server/`) for source-neutral task retrieval and schedule publication; the Task Server alone owns Zim database and schedule-page access.
 
 1. **Task ingestion** – `TaskServerClient` retrieves source-neutral task DTOs from the Task Server. `TaskParser` creates `Task` objects and preserves duration syntax and splitting; the workflow builds the hierarchy and resolves inherited duration/tag metadata. The Task Server's `ZimTaskSource` performs read-only Zim reads and returns generic task fields.
 2. **Scheduling** – `TaskScheduler` prepares `Day` buckets representing working time, blocks breaks and existing meetings, and assigns tasks according to priority/tag filters. Reserved slots become `ScheduledTask` instances that carry start time, duration, and source metadata. 
 3. **Calendar integration** – A `Calendar` implementation, selected via `CalendarFactory`, retrieves current appointments and optionally creates or deletes LurchCal events. Outlook automation uses `win32com`, while Google Calendar relies on the REST API. 
 
-The `LurchCalApp` provides three legacy actions and remains functional through AP5. The browser app binds to `127.0.0.1:8000`, and the Task Server to `127.0.0.1:8001`; browser-facing settings routes proxy task-source operations through LurchCal. Web scheduling and calendar modification run in the AP4 single-worker in-memory job manager; the browser guards conflicting actions and polls server-rendered job fragments. Outlook COM apartment setup and all provider object use occur inside that worker thread. The Jinja2/HTMX browser displays task results and settings; Alpine.js is limited to transient control state. FullCalendar receives normalized provider commitments and generated schedule slots for only the requested visible date range. Calendar interaction remains view-only.
+The browser app binds to `127.0.0.1:8000`, and the Task Server to `127.0.0.1:8001`; browser-facing settings routes proxy task-source operations through LurchCal. Web scheduling and calendar modification run in the AP4 single-worker in-memory job manager; the browser guards conflicting actions and polls server-rendered job fragments. Outlook COM apartment setup and all provider object use occur inside that worker thread. The Jinja2/HTMX browser displays task results and settings; Alpine.js is limited to transient control state. FullCalendar receives normalized provider commitments and generated schedule slots for only the requested visible date range. Calendar interaction remains view-only.
 
 ## Data Flow
-1. **Configuration** – The Kivy app maintains its scheduling/calendar settings and Task Server base URL, adapting them to typed settings in `lurchcal.settings`. The Task Server stores Zim `path_db` and `path_page` in its own local INI file.
+1. **Configuration** – LurchCal maintains its scheduling/calendar settings and Task Server base URL, adapting them to typed settings in `lurchcal.settings`. The Task Server stores Zim `path_db` and `path_page` in its own local INI file.
 2. **Task retrieval** – `create_task_appointments` retrieves open tasks from `TaskServerClient` for an explicit reference date, parses the DTOs, builds a task tree with `build_tree`, and flattens it in priority order. Duration and tag metadata cascade from parent tasks to children.
 3. **Calendar snapshot** – The workflow authenticates to the selected provider, fetches upcoming events for the scheduling horizon, and filters out previously generated LurchCal meetings. 
 4. **Scheduling** – `TaskScheduler.schedule_everything` builds `Day` objects for the planning window, blocks meetings and breaks, and then iteratively reserves time for tasks ordered by `filter_list` and configured `tag_order`. Remaining capacity is offered to "future" tagged tasks. 
@@ -35,14 +35,14 @@ The Task Server's versioned API includes `GET /api/v1/health`, `GET /api/v1/capa
 - **Calendar hygiene** – LurchCal appointments carry a GUID (`definitions.py`) so cleanup can safely delete only owned entries. Busy status is set according to tags indicating forced appointments or time blocking. 
 
 ## External Dependencies
-- **Kivy** for GUI and persisted settings UI. Core settings are UI-independent dataclasses; non-UI modules use Python standard logging.
+- FastAPI, Jinja2, HTMX, and Alpine.js for the local browser interface.
 - **durations-nlp** for human-friendly duration parsing.
 - **bigtree** for handling task hierarchies.
 - **multisort** for deterministic multi-key sorting.
 - **win32com**, **google-api-python-client**, and associated auth libraries for calendar integrations.
 
 ## Configuration Surface
-- `settings_lurchcal.json` (loaded via Kivy settings) exposes defaults for task lengths, scheduling horizon, calendar provider, tag semantics, and Task Server base URL. Users edit these through the settings dialog launched from the main window.
+- LurchCal settings expose defaults for task lengths, scheduling horizon, calendar provider, tag semantics, and Task Server base URL. Users manage these through the browser Settings page.
 - The AP2 Task Server INI section `[zim]` stores `path_db` and `path_page`. Its default location is `%LOCALAPPDATA%\LurchCal\task_server.ini`, overridable with `LURCHCAL_TASK_SERVER_CONFIG`. The service listens on `127.0.0.1:8001` by default.
 
 ## Current Limitations
@@ -60,6 +60,6 @@ The Task Server's versioned API includes `GET /api/v1/health`, `GET /api/v1/capa
 ## Feature Opportunities
 - **Adaptive focus management** – Continuously evaluate completed work versus planned effort and reflow remaining tasks into the schedule, optionally nudging the user when spillover threatens high-priority commitments.
 - **Task source federation** – Import tasks from additional systems such as Microsoft To Do, Trello, or Todoist and normalize them into the Zim-backed workflow, allowing users to centralize planning without abandoning their preferred capture tools.
-- **Visual timeline dashboard** – Provide a Gantt-style view within the Kivy UI that overlays scheduled tasks, existing meetings, and flexibility buffers so that users can drag blocks to fine-tune their day before committing updates.
+- **Visual timeline dashboard** – Provide a Gantt-style view in the browser that overlays scheduled tasks, existing meetings, and flexibility buffers so that users can drag blocks to fine-tune their day before committing updates.
 - **Scenario planning mode** – Allow the user to spin up alternative schedules (e.g., "deep work" versus "meeting-heavy" scenarios) by tweaking parameters like working hours, tag emphasis, or meeting acceptance, then compare outcomes before publishing.
 - **Predictive assistance** – Analyze historical completion rates and meeting loads to recommend realistic workloads, flag overcommitted days, and suggest deferring or delegating tasks when capacity is exceeded.
