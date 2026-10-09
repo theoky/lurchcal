@@ -4,7 +4,6 @@
 {% if job.status == 'failed' %}<p class="error">{{ job.error }}</p>{% endif %}
 {% if job.status == 'succeeded' %}
 <p class="success">Operation completed.</p>
-{% if job.result %}<p>Summary: {{ job.result.statistics|default({}) }}</p>
-{% if job.result.unscheduled_tasks %}<h4>Unscheduled tasks</h4><div class="task-list-scroll" tabindex="0" aria-label="Unscheduled tasks"><ul>{% for task in job.result.unscheduled_tasks %}<li>{{ task.description|default(task) }}</li>{% endfor %}</ul></div>{% else %}<p>No unscheduled tasks.</p>{% endif %}
-{% if job.result.scheduled_tasks %}<h4>Scheduled tasks</h4><div class="task-list-scroll" tabindex="0" aria-label="Scheduled tasks"><ul>{% for task in job.result.scheduled_tasks %}<li>{{ task.description|default(task) }}{% if task.start %} — {{ task.start }}{% endif %}</li>{% endfor %}</ul></div>{% else %}<p>No scheduled tasks.</p>{% endif %}{% endif %}{% endif %}</article>
+{% if job.result %}<p>Schedule details are available in the Task lists tab.</p>{% endif %}
+{% endif %}</article>
 {% if job.status in ['succeeded','failed'] %}<script>document.querySelectorAll('.actions button').forEach(button=>button.disabled=false);document.body.dispatchEvent(new Event('schedule-updated'));</script>{% endif %}

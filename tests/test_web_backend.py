@@ -221,8 +221,50 @@ def test_calendar_uses_local_timezone_and_24_hour_time_format():
     config = app_js.read_text(encoding="utf-8")
 
     assert "timeZone:'local'" in config
+    assert "initialView:'timeGridDay'" in config
     assert "eventTimeFormat:{hour:'2-digit',minute:'2-digit',hour12:false}" in config
     assert "slotLabelFormat:{hour:'2-digit',minute:'2-digit',hour12:false}" in config
+
+
+def test_schedule_page_separates_calendar_actions_and_task_lists(tmp_path):
+    app = create_app(settings_path=tmp_path / "settings.ini")
+
+    with TestClient(app) as client:
+        response = client.get("/")
+
+    assert response.status_code == 200
+    page = response.text
+    assert "activeTab:'calendar'" in page
+    assert 'id="calendar-panel"' in page
+    assert 'id="tasks-panel"' in page
+    assert page.index('id="calendar-panel"') < page.index('id="tasks-panel"')
+    assert 'id="calendar"' in page
+    assert 'hx-get="/ui/tasks"' in page
+    assert 'hx-get="/ui/results"' in page
+
+
+def test_completed_job_fragment_keeps_task_details_in_task_lists_tab():
+    from pathlib import Path
+    from jinja2 import Environment, FileSystemLoader
+
+    template_dir = Path(__file__).parents[1] / "src" / "lurchcal" / "templates"
+    template = Environment(loader=FileSystemLoader(template_dir)).get_template("job.html")
+    job = {
+        "id": "job-1", "status": "succeeded", "progress": [], "error": None,
+        "result": {
+            "statistics": {"scheduled": 1},
+            "scheduled_tasks": [{"description": "scheduled task", "start": "2026-10-09T09:00"}],
+            "unscheduled_tasks": [{"description": "unscheduled task"}],
+        },
+    }
+
+    rendered = template.render(job=job)
+
+    assert "Operation completed." in rendered
+    assert "Task lists tab" in rendered
+    assert "scheduled task" not in rendered
+    assert "unscheduled task" not in rendered
+    assert "schedule-updated" in rendered
 
 
 def test_open_task_list_is_rendered_in_scrollable_container(tmp_path, monkeypatch):
@@ -254,6 +296,23 @@ def test_open_task_list_is_rendered_in_scrollable_container(tmp_path, monkeypatc
     assert response.status_code == 200
     assert 'class="task-list-scroll"' in response.text
     assert "example" in response.text
+
+
+def test_schedule_result_lists_are_stacked_scheduled_then_unscheduled():
+    from pathlib import Path
+    from jinja2 import Environment, FileSystemLoader
+
+    template_dir = Path(__file__).parents[1] / "src" / "lurchcal" / "templates"
+    template = Environment(loader=FileSystemLoader(template_dir)).get_template("results.html")
+    rendered = template.render(result={
+        "statistics": {},
+        "scheduled_tasks": [{"description": "scheduled example", "start": "2026-10-09T09:00"}],
+        "unscheduled_tasks": [{"description": "unscheduled example"}],
+    })
+
+    assert 'class="result-list"' in rendered
+    assert rendered.index("scheduled example") < rendered.index("unscheduled example")
+    assert rendered.count('class="task-list-scroll"') == 2
 
 
 def test_http_health_pages_settings_and_task_server_proxy(tmp_path):
@@ -390,7 +449,8 @@ def test_browser_ui_jobs_poll_and_render_results(tmp_path):
             response = client.post("/ui/jobs/publish")
             assert response.status_code == 202
             assert "Job succeeded" in response.text
-            assert "No unscheduled tasks" in response.text
+            assert "Task lists tab" in response.text
+            assert "No unscheduled tasks" not in response.text
             job_id = response.text.split('data-job-id="', 1)[1].split('"', 1)[0]
             assert "succeeded" in client.get(f"/ui/jobs/{job_id}").text
             assert client.post("/ui/jobs/remove").status_code == 202
