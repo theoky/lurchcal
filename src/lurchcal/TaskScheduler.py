@@ -124,8 +124,13 @@ class TaskScheduler:
 
             # handle also multi day appointments
             if appt.all_day_event:
+                whole_day = appt.parsedDateTime_start.date()
+                d = self.days.get(whole_day, None)
+                if d:
+                    d.block_time(time(0,0), 24*60-1)
+            else:
                 for day in self._daterange(
-                    appt.parsedDateTime_start.date(), appt.parsedDateTime_end.date(), False
+                    appt.parsedDateTime_start.date(), appt.parsedDateTime_end.date(), True
                 ):
                     d = self.days.get(day, None)
                     if d:
@@ -133,7 +138,8 @@ class TaskScheduler:
                             time(appt.parsedDateTime_start.hour, appt.parsedDateTime_start.minute),
                             appt.duration,
                         )
-        
+                        logger.debug("blocked {0}".format(appt.summary))
+
     def _schedule_breaks(self):
         res_scheduled_tasks = []
         for d in self.days.values():
@@ -261,6 +267,7 @@ class TaskScheduler:
             yield start_date + timedelta(n)
 
     def schedule_everything(self, cal, start_date, tasks, appointments, start_time=None, days=5):
+        logger.debug("schedule_everything")
         end_date = start_date + timedelta(days=days)
         
         act_start_date = self._prepare_days(start_date, end_date)
