@@ -129,7 +129,7 @@ class SchedulingService:
         settings = self.settings
         emit({"stage": "tasks", "message": "Retrieving and parsing tasks"})
         task_server = self.task_client_factory(settings.task_server_url)
-        tasks = TaskParser(settings).parse_tasks(task_server.get_tasks(date.today()))
+        tasks = TaskParser(settings).parse_tasks(task_server.get_tasks(date.today()+timedelta(days=settings.appt.days_for_scheduling)))
         task_tree = build_tree(tasks)
         tagged_task_list = [node.get_attr("task") for node in preorder_iter(
             task_tree, filter_condition=lambda x: x.node_name != "0.0")]
