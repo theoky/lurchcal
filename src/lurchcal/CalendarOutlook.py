@@ -141,7 +141,11 @@ class CalendarOutlook(Calendar):
             # https://learn.microsoft.com/en-us/office/vba/api/outlook.appointmentitem.reminderset
             appt = cal.Add()  # AppointmentItem
             appt.Start = sstr
-            appt.Subject = st.task.description[:40]
+            appt.Subject = (
+                "Gruppierte Aufgaben"
+                if hasattr(st, "_grouped_default_tasks")
+                else st.task.description[:40]
+            )
             appt.Duration = st.duration
 
             b = (

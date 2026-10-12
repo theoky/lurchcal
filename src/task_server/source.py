@@ -83,7 +83,7 @@ class ZimTaskSource:
         try:
             return date.fromisoformat(value)
         except (TypeError, ValueError):
-            logger.warning("Ignoring invalid Zim task date value %r", value)
+            logger.info("Ignoring invalid Zim task date value %r", value)
             return None
 
     def get_tasks(self, as_of: date) -> list[TaskRead]:

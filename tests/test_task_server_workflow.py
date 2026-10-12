@@ -1,5 +1,5 @@
 """Scheduling service boundary tests without a running calendar provider."""
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 from unittest.mock import Mock
 
 from lurchcal.settings import AppSettings, AppointmentSettings, TagSettings, TaskSettings
@@ -42,9 +42,38 @@ def test_scheduling_service_retrieves_dtos_and_publishes_schedule(monkeypatch):
     events = []
     result = lurchcal_wf.SchedulingService(settings()).create_schedule(progress=events.append)
     assert result.unscheduled_tasks == unscheduled
-    service.get_tasks.assert_called_once_with(date.today())
+    service.get_tasks.assert_called_once_with(
+        date.today() + timedelta(days=settings().appt.days_for_scheduling)
+    )
     service.publish_schedule.assert_called_once_with(scheduled)
     assert [event["stage"] for event in events][-1] == "complete"
+
+
+def test_scheduling_service_groups_default_tasks_for_calendar_only(monkeypatch):
+    service = Mock()
+    service.get_tasks.return_value = []
+    monkeypatch.setattr(lurchcal_wf, "TaskServerClient", lambda _: service)
+    monkeypatch.setattr(lurchcal_wf.SchedulingService, "__init__", lambda self, settings, **kwargs: _service_init(
+        self, settings, service))
+    first = ScheduledTask(datetime(2026, 10, 5, 9), Task("One"), 6)
+    second = ScheduledTask(datetime(2026, 10, 5, 9, 6), Task("Two"), 6)
+    scheduler = Mock()
+    scheduler.schedule_everything.return_value = ([first, second], [])
+    monkeypatch.setattr(lurchcal_wf, "TaskScheduler", lambda _: scheduler)
+    calendar = Mock()
+    calendar.get_appointments.return_value = []
+    monkeypatch.setattr(lurchcal_wf.CalendarFactory, "create_calendar", lambda _: calendar)
+
+    result = lurchcal_wf.SchedulingService(settings()).create_schedule(
+        create_calendar_appointments=True, publish_schedule=False
+    )
+
+    calendar.create_appointments_4_tasks.assert_called_once()
+    appointments = calendar.create_appointments_4_tasks.call_args.args[0]
+    assert len(appointments) == 1
+    assert appointments[0].duration == 12
+    assert appointments[0].task.description == "One\nTwo"
+    assert result.scheduled_tasks == [first, second]
 
 
 def test_scheduling_service_surfaces_server_failure_before_calendar_creation(monkeypatch):

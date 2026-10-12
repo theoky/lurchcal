@@ -166,7 +166,11 @@ class CalendarGoogle(Calendar):
                     
                 # Create the event
                 event = {
-                    'summary': st.task.description[:40],
+                    'summary': (
+                        "Gruppierte Aufgaben"
+                        if hasattr(st, "_grouped_default_tasks")
+                        else st.task.description[:40]
+                    ),
                     'description': description,
                     'start': {
                         'dateTime': start_time,

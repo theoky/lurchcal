@@ -17,6 +17,8 @@ The local FastAPI application (`lurchcal.web_app`) uses Jinja2, HTMX, and Alpine
 2. **Scheduling** – `TaskScheduler` prepares `Day` buckets representing working time, blocks breaks and existing meetings, and assigns tasks according to priority/tag filters. Reserved slots become `ScheduledTask` instances that carry start time, duration, and source metadata. 
 3. **Calendar integration** – A `Calendar` implementation, selected via `CalendarFactory`, retrieves current appointments and optionally creates or deletes LurchCal events. Outlook automation uses `win32com`, while Google Calendar relies on the REST API. 
 
+   When consecutive scheduled tasks each retain the configured default duration, calendar appointment creation combines them into one appointment titled **“Gruppierte Aufgaben”**. Its body lists all task descriptions. Explicit-duration tasks, inherited non-default durations, and segments created by splitting long tasks remain individual appointments.
+
 The browser app binds to `127.0.0.1:8000`, and the Task Server to `127.0.0.1:8001`; browser-facing settings routes proxy task-source operations through LurchCal. Web scheduling and calendar modification run in the AP4 single-worker in-memory job manager; the browser guards conflicting actions and polls server-rendered job fragments. Outlook COM apartment setup and all provider object use occur inside that worker thread. The Jinja2/HTMX browser displays task results and settings; Alpine.js is limited to transient control state. FullCalendar receives normalized provider commitments and generated schedule slots for only the requested visible date range. Calendar interaction remains view-only.
 
 ## Data Flow

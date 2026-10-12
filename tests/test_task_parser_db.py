@@ -41,6 +41,7 @@ def test_parse_source_neutral_tasks_splits_and_filters(parser):
     ]
     assert [task.duration for task in tasks] == [60, 60, 30]
     assert [task.subid for task in tasks] == [1, 0, 0]
+    assert [task.is_default_duration for task in tasks] == [False, False, True]
 
     for task in tasks:
         assert task.source_name == "Work"

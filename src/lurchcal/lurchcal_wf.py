@@ -4,6 +4,7 @@
 """
 """
 import logging
+from copy import copy
 from dataclasses import dataclass, field
 from typing import Callable
 
@@ -21,6 +22,50 @@ from lurchcal.TaskServerClient import TaskServerClient
 from lurchcal.task_tools import filter_tasks
 
 logger = logging.getLogger(__name__)
+
+
+def group_default_duration_appointments(scheduled_tasks, default_duration):
+    """Merge adjacent default-duration scheduled tasks for calendar display."""
+    grouped = []
+    for item in sorted(scheduled_tasks, key=lambda scheduled: scheduled.start):
+        task = item.task
+        eligible = (
+            task.is_default_duration
+            and task.duration == default_duration
+            and item.duration == default_duration
+        )
+        if grouped and eligible:
+            previous = grouped[-1]
+            previous_end = previous.start + timedelta(minutes=previous.duration)
+            if (
+                previous_end == item.start
+                and hasattr(previous, "_grouped_default_tasks")
+                and previous.task.tags == task.tags
+                and previous.task.create_appt_anyway == task.create_appt_anyway
+                and previous.task.block_time == task.block_time
+            ):
+                previous._grouped_default_tasks.append(task.description)
+                previous.duration += item.duration
+                previous.task.description = "\n".join(previous._grouped_default_tasks)
+                continue
+            if (
+                previous_end == item.start
+                and previous.task.is_default_duration
+                and previous.task.duration == default_duration
+                and previous.duration == default_duration
+                and previous.task.tags == task.tags
+                and previous.task.create_appt_anyway == task.create_appt_anyway
+                and previous.task.block_time == task.block_time
+            ):
+                merged = copy(previous)
+                merged.task = copy(previous.task)
+                merged._grouped_default_tasks = [previous.task.description, task.description]
+                merged.task.description = "\n".join(merged._grouped_default_tasks)
+                merged.duration += item.duration
+                grouped[-1] = merged
+                continue
+        grouped.append(item)
+    return grouped
 
 # globals
 
@@ -156,8 +201,29 @@ class SchedulingService:
                 item.task.create_appt_anyway = True
             if any(tag in item.task.tags for tag in settings.tags.tags_to_block_time):
                 item.task.block_time = True
-        task_book, _ = filter_tasks(scheduled, lambda item: item.duration >= settings.appt.min_task_len_4_appt
-                                    or any(tag in item.task.tags for tag in settings.tags.tags_to_create_appt))
+        appointment_candidates, _ = filter_tasks(
+            scheduled,
+            lambda item: (
+                item.duration >= settings.appt.min_task_len_4_appt
+                or any(tag in item.task.tags for tag in settings.tags.tags_to_create_appt)
+                or (
+                    item.task.is_default_duration
+                    and item.task.duration == settings.tasks.def_task_len
+                    and item.duration == settings.tasks.def_task_len
+                )
+            ),
+        )
+        grouped_candidates = group_default_duration_appointments(
+            appointment_candidates, settings.tasks.def_task_len
+        )
+        task_book = [
+            item for item in grouped_candidates
+            if (
+                hasattr(item, "_grouped_default_tasks")
+                or item.duration >= settings.appt.min_task_len_4_appt
+                or any(tag in item.task.tags for tag in settings.tags.tags_to_create_appt)
+            )
+        ]
         if create_calendar_appointments:
             cal.create_appointments_4_tasks(task_book)
 

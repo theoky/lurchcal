@@ -79,6 +79,7 @@ class TaskParser:
                     st.description = "st: " + task.description
                     st.duration = self.settings.tasks.min_task_split
                     st.subid = subid
+                    st.is_default_duration = False
                     task.duration -= self.settings.tasks.min_task_split
                     subid += 1
 
