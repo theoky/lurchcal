@@ -22,6 +22,16 @@ This specifies the duration of a task, whereas duration can be written in hours,
 If the duration is specified at the top level task of subtasks, the duration is distributed evenly among the subtasks.
 If 'a', which is optional, is specified, each subtasks gets assigned the specified duration of the parent task.
 
+
+## Scheduling of tasks
+
+Tasks are per default scheduled as follows:
+
+- tasks with ILM tag - ILM stands for Ivy Lee Method
+- tasks with prio >= 3 and a due date
+- tasks with prio >=3
+- repeat for tasks with prio 2, 1 and none
+
 ### Examples
 
 > - [ ] task which lasts 10 minutes \~10m\~

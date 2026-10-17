@@ -13,8 +13,8 @@ from lurchcal.Day import Day
 from lurchcal.ScheduledTask import ScheduledTask
 from multisort import multisort, mscol
 
-from lurchcal.task_tools import filter_tasks, flt_has_children, flt_ilm, flt_contains_end_date_prio3, \
-    flt_contains_end_date_prio2, flt_contains_end_date_prio1, flt_contains_end_date, \
+from lurchcal.task_tools import filter_tasks, flt_has_children, flt_ilm, flt_contains_due_date_prio3, \
+    flt_contains_due_date_prio2, flt_contains_due_date_prio1, flt_contains_due_date, \
     flt_gte_prio3, flt_prio2, flt_prio1, flt_contains_start_date
     
 logger = logging.getLogger(__name__)
@@ -208,13 +208,13 @@ class TaskScheduler:
         # schedule all ILM tasks and tasks with end date
         filter_list = [
             flt_ilm,
-            flt_contains_end_date_prio3,
+            flt_contains_due_date_prio3,
             flt_gte_prio3,
-            flt_contains_end_date_prio2,
+            flt_contains_due_date_prio2,
             flt_prio2,
-            flt_contains_end_date_prio1,
+            flt_contains_due_date_prio1,
             flt_prio1,
-            flt_contains_end_date,
+            flt_contains_due_date,
         ]
 
         logger.debug("schedule_everything.py: schedule filtered tasks")

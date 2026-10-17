@@ -10,16 +10,16 @@ def flt_has_children(element):
 def flt_ilm(element):
     return "ilm" in element.description.lower() or "ilm" in element.tags
 
-def flt_contains_end_date_prio3(element):
+def flt_contains_due_date_prio3(element):
     return element.due_date is not None and element.prio >= 3
 
-def flt_contains_end_date_prio2(element):
+def flt_contains_due_date_prio2(element):
     return element.due_date is not None and element.prio >= 2
 
-def flt_contains_end_date_prio1(element):
+def flt_contains_due_date_prio1(element):
     return element.due_date is not None and element.prio >= 1
 
-def flt_contains_end_date(element):
+def flt_contains_due_date(element):
     return element.due_date is not None
 
 def flt_gte_prio3(element):

@@ -49,7 +49,6 @@ The Task Server's versioned API includes `GET /api/v1/health`, `GET /api/v1/capa
 
 ## Current Limitations
 - Error handling is minimal; failures in background threads surface only as strings in the UI. Outlook-specific dependencies prevent cross-platform execution without guards. 
-- Calendar appointment blocking currently processes only appointments represented as all-day events in the scheduler; this existing limitation is retained in AP1.
 - Configuration assumes synchronous execution and blocking UI during heavy operations.
 
 ## Proposed Next Steps
