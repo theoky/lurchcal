@@ -12,6 +12,8 @@ from lurchcal.Task import Task
 from lurchcal.TaskParser import TaskParser
 from lurchcal.TaskScheduler import TaskScheduler
 from lurchcal.GenAppointment import GenAppointment
+from lurchcal.CalendarOutlook import CalendarOutlook
+from lurchcal.outlook_enums import OlBusyStatus
 from lurchcal.settings import AppSettings, AppointmentSettings, TaskSettings, TagSettings
 
 from zoneinfo import ZoneInfo
@@ -161,7 +163,7 @@ class TestTaskScheduler(unittest.TestCase):
         self.assertEqual(first_day_breaks[1].task.description, "Break")
 
     def test_schedule_calendar_appointments(self):
-        """Test scheduling around calendar appointments"""
+        """Timed appointments block the overlapping portion of their day."""
         start_date = dt.date(2024, 1, 1)
         end_date = dt.date(2024, 1, 7)
         self.scheduler._prepare_days(start_date, end_date)
@@ -180,13 +182,70 @@ class TestTaskScheduler(unittest.TestCase):
 
         self.scheduler._schedule_calendar_appointments(mock_cal, [mock_appt])
 
-        # Current behavior blocks all-day appointments only.
         first_day = self.scheduler.days[start_date]
-        self.assertEqual(len(first_day.free_time_blocks), 1)
+        self.assertEqual(first_day.free_time(), 420)
+        self.assertEqual(first_day.free_time_blocks[0][0], dt.datetime(2024, 1, 1, 9))
+        self.assertEqual(first_day.free_time_blocks[1][0], dt.datetime(2024, 1, 1, 11))
 
-        mock_appt.all_day_event = False
-        self.scheduler._schedule_calendar_appointments(mock_cal, [mock_appt])
-        self.assertEqual(len(first_day.free_time_blocks), 1)
+    def test_multi_day_all_day_out_of_office_blocks_every_covered_workday(self):
+        start_date = dt.date(2024, 1, 1)  # Monday
+        self.scheduler._prepare_days(start_date, dt.date(2024, 1, 8))
+        out_of_office = GenAppointment()
+        out_of_office.summary = "Out of Office"
+        out_of_office.parsedDateTime_start = dt.datetime(2024, 1, 2)
+        # Calendar all-day event end dates are exclusive: Jan 2 through Jan 5.
+        out_of_office.parsedDateTime_end = dt.datetime(2024, 1, 5)
+        out_of_office.all_day_event = True
+
+        calendar = Mock()
+        calendar.convert_appointment.return_value = out_of_office
+        self.scheduler._schedule_calendar_appointments(calendar, [out_of_office])
+
+        for day in (dt.date(2024, 1, 2), dt.date(2024, 1, 3), dt.date(2024, 1, 4)):
+            self.assertEqual(self.scheduler.days[day].free_time(), 0)
+        self.assertGreater(self.scheduler.days[start_date].free_time(), 0)
+        self.assertGreater(self.scheduler.days[dt.date(2024, 1, 5)].free_time(), 0)
+
+    def test_timed_appointment_spanning_midnight_blocks_each_day_overlap(self):
+        start_date = dt.date(2024, 1, 1)
+        self.scheduler._prepare_days(start_date, dt.date(2024, 1, 8))
+        appointment = GenAppointment()
+        appointment.summary = "Overnight"
+        appointment.parsedDateTime_start = dt.datetime(2024, 1, 2, 16)
+        appointment.parsedDateTime_end = dt.datetime(2024, 1, 3, 10)
+        appointment.all_day_event = False
+        appointment.duration = 18 * 60
+
+        calendar = Mock()
+        calendar.convert_appointment.return_value = appointment
+        self.scheduler._schedule_calendar_appointments(calendar, [appointment])
+
+        self.assertEqual(self.scheduler.days[dt.date(2024, 1, 2)].free_time(), 420)
+        self.assertEqual(self.scheduler.days[dt.date(2024, 1, 3)].free_time(), 420)
+        self.assertEqual(
+            self.scheduler.days[dt.date(2024, 1, 2)].free_time_blocks[0][0],
+            dt.datetime(2024, 1, 2, 9),
+        )
+        self.assertEqual(
+            self.scheduler.days[dt.date(2024, 1, 3)].free_time_blocks[0][0],
+            dt.datetime(2024, 1, 3, 10),
+        )
+
+    def test_outlook_out_of_office_busy_status_is_retained(self):
+        appointment = Mock()
+        appointment.UserProperties.Find.return_value = None
+        appointment.BusyStatus = OlBusyStatus.olOutOfOffice.value
+        appointment.Subject = "Out of Office"
+        appointment.Start = dt.datetime(2024, 1, 2)
+        appointment.End = dt.datetime(2024, 1, 5)
+        appointment.AllDayEvent = True
+        appointment.Duration = 3 * 24 * 60
+
+        converted = CalendarOutlook().convert_appointment(appointment)
+
+        self.assertIsNotNone(converted)
+        self.assertEqual(converted.parsedDateTime_start, appointment.Start)
+        self.assertEqual(converted.parsedDateTime_end, appointment.End)
 
     def test_schedule_tasks_by_priority(self):
         """Test scheduling tasks with different priorities and tags"""

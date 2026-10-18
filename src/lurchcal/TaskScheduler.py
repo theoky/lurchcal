@@ -122,23 +122,33 @@ class TaskScheduler:
             if ignore:
                 continue
 
-            # handle also multi day appointments
-            if appt.all_day_event:
-                whole_day = appt.parsedDateTime_start.date()
-                d = self.days.get(whole_day, None)
-                if d:
-                    d.block_time(time(0,0), 24*60-1)
-            else:
-                for day in self._daterange(
-                    appt.parsedDateTime_start.date(), appt.parsedDateTime_end.date(), True
-                ):
-                    d = self.days.get(day, None)
-                    if d:
-                        d.block_time(
-                            time(appt.parsedDateTime_start.hour, appt.parsedDateTime_start.minute),
-                            appt.duration,
-                        )
-                        logger.debug("blocked {0}".format(appt.summary))
+            # Block the actual appointment overlap on every scheduled day. This
+            # handles all-day events (whose end is exclusive) and multi-day OOO.
+            appt_start = appt.parsedDateTime_start
+            appt_end = appt.parsedDateTime_end
+            # The planner uses local wall-clock datetimes; provider adapters may
+            # supply timezone-aware calendar values representing those same times.
+            if appt_start.tzinfo is not None:
+                appt_start = appt_start.replace(tzinfo=None)
+            if appt_end.tzinfo is not None:
+                appt_end = appt_end.replace(tzinfo=None)
+            if appt_end <= appt_start:
+                continue
+
+            for day, day_bucket in self.days.items():
+                day_start = datetime.combine(day, time.min)
+                day_end = day_start + timedelta(days=1)
+                overlap_start = max(appt_start, day_start)
+                overlap_end = min(appt_end, day_end)
+                if overlap_end <= overlap_start:
+                    continue
+
+                minutes = int((overlap_end - overlap_start).total_seconds() // 60)
+                if minutes >= 24 * 60:
+                    day_bucket.block_time(time.min, 24 * 60)
+                else:
+                    day_bucket.block_time(overlap_start.time(), minutes)
+                logger.debug("blocked %s on %s", appt.summary, day)
 
     def _schedule_breaks(self):
         res_scheduled_tasks = []
