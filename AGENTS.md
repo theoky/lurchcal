@@ -5,7 +5,7 @@ These rules apply to the entire repository unless a nested `AGENTS.md` overrides
 
 ## Architecture contract
 
-Before making architectural changes, read `ARCHITECTURE.md` and `MIGRATION.md`.
+Before making architectural changes, read `ARCHITECTURE.md`, and `MIGRATION.md` if available.
 
 For all implementation work:
 

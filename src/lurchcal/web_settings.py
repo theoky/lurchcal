@@ -27,6 +27,7 @@ class LurchCalSettings(BaseModel):
     ilm: str = "ilm"
     tag_order: str = "akquise, legal, mail"
     tag_projects: str = ""
+    tags_to_ignore: str = "2private, 2privat"
     tag_ignore_appt: str = "focus time, no ext.* appt.*, ^blocked$"
     tags_to_create_appt: str = "appt"
     tags_future: str = "future"
@@ -91,6 +92,9 @@ class LurchCalSettingsStore:
             ilm=parser.get("tags", "ilm", fallback="ilm"),
             tag_order=parser.get("tags", "tag_order", fallback="akquise, legal, mail"),
             tag_projects=parser.get("tags", "tag_projects", fallback=""),
+            tags_to_ignore=parser.get(
+                "tags", "tags_to_ignore", fallback="2private, 2privat"
+            ),
             tag_ignore_appt=parser.get("tags", "tag_ignore_appt", fallback="focus time, no ext.* appt.*, ^blocked$"),
             tags_to_create_appt=parser.get("tags", "tags_to_create_appt", fallback="appt"),
             tags_future=parser.get("tags", "tags_future", fallback="future"),
@@ -110,6 +114,7 @@ class LurchCalSettingsStore:
                      "start_of_day": settings.start_of_day, "hours_per_day": str(settings.hours_per_day)},
             "tasks": {"def_task_len": str(settings.def_task_len), "min_task_split": str(settings.min_task_split)},
             "tags": {"ilm": settings.ilm, "tag_order": settings.tag_order, "tag_projects": settings.tag_projects,
+                     "tags_to_ignore": settings.tags_to_ignore,
                      "tag_ignore_appt": settings.tag_ignore_appt, "tags_to_create_appt": settings.tags_to_create_appt,
                      "tags_future": settings.tags_future, "tags_to_block_time": settings.tags_to_block_time},
         }
@@ -139,6 +144,7 @@ class LurchCalSettingsStore:
                      "hours_per_day": str(settings.hours_per_day), "app": settings.calendar_provider},
             "tasks": {"def_task_len": str(settings.def_task_len), "min_task_split": str(settings.min_task_split)},
             "tags": {"ilm": settings.ilm, "tag_order": settings.tag_order, "tag_projects": settings.tag_projects,
+                     "tags_to_ignore": settings.tags_to_ignore,
                      "tag_ignore_appt": settings.tag_ignore_appt, "tags_to_create_appt": settings.tags_to_create_appt,
                      "tags_future": settings.tags_future, "tags_to_block_time": settings.tags_to_block_time},
             "taskserver": {"base_url": settings.task_server_url},

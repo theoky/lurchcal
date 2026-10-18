@@ -51,6 +51,7 @@ class TagSettings:
     tags_to_create_appt: tuple[str, ...]
     tags_future: tuple[str, ...]
     tags_to_block_time: tuple[str, ...]
+    tags_to_ignore: tuple[str, ...] = ("2private", "2privat")
 
 
 @dataclass(frozen=True)
@@ -97,6 +98,9 @@ def settings_from_config(config: ConfigReader) -> AppSettings:
             tags_to_create_appt=_split(get_optional("tags", "tags_to_create_appt", "appt")),
             tags_future=_split(get_optional("tags", "tags_future", "future")),
             tags_to_block_time=_split(get_optional("tags", "tags_to_block_time", "block")),
+            tags_to_ignore=_split(
+                get_optional("tags", "tags_to_ignore", "2private, 2privat")
+            ),
         ),
         task_server_url=_read_task_server_url(config),
     )

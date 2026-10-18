@@ -35,6 +35,7 @@ The Task Server's versioned API includes `GET /api/v1/health`, `GET /api/v1/capa
 - **Task metadata** – Durations are parsed from `~duration~` fragments using `durations_nlp`. Missing durations fall back to `tasks.def_task_len`. Parent tasks distribute or assign durations to children based on flags. Tags prefixed with `@` drive filtering rules. 
 - **Scheduling window** – The planner considers five working days beginning at the next non-weekend day after `start_date`, respecting `hours_per_day` and `start_of_day`. The first day blocks past time when scheduling "today". 
 - **Prioritization** – Tasks are sorted by due date, priority, duration, and start date, then filtered in waves: ILM tasks, due tasks by priority, general priority, and others. Configured `tag_order` ensures certain tags are scheduled before the rest within each wave. Future-tagged tasks are postponed until the end. 
+- **Ignored task tags** – Tasks carrying any configured `tags_to_ignore` tag are excluded from scheduling and schedule publication. The browser settings default to `2private, 2privat`.
 - **Calendar hygiene** – LurchCal appointments carry a GUID (`definitions.py`) so cleanup can safely delete only owned entries. Busy status is set according to tags indicating forced appointments or time blocking. 
 
 ## External Dependencies

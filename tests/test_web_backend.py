@@ -14,6 +14,7 @@ def test_settings_round_trip_validation(tmp_path):
         lunch_break_time="12:30", before_noon_break_time="10:15", start_of_day="08:30",
         hours_per_day=8, def_task_len=7, min_task_split=45, ilm="ivy",
         tag_order="urgent, admin", tag_projects="project", tag_ignore_appt="focus",
+        tags_to_ignore="2private, internal",
         tags_to_create_appt="meeting", tags_future="later", tags_to_block_time="busy")
     store.save(settings)
     assert store.load() == settings
@@ -23,6 +24,7 @@ def test_settings_round_trip_validation(tmp_path):
     assert app_settings.appt.start_of_day.hour == 8
     assert app_settings.tasks.def_task_len == 7
     assert app_settings.tags.tag_order == ("urgent", "admin")
+    assert app_settings.tags.tags_to_ignore == ("2private", "internal")
     assert app_settings.tags.tags_to_block_time == ("busy",)
 
 
@@ -34,8 +36,19 @@ def test_settings_defaults_match_legacy_config_defaults():
             settings.hours_per_day, settings.calendar_provider) == ("12:00", "10:00", "9:00", 9, "outlook")
     assert (settings.def_task_len, settings.min_task_split) == (6, 60)
     assert (settings.ilm, settings.tag_order, settings.tag_projects, settings.tag_ignore_appt,
-            settings.tags_to_create_appt, settings.tags_future, settings.tags_to_block_time) == (
-        "ilm", "akquise, legal, mail", "", "focus time, no ext.* appt.*, ^blocked$", "appt", "future", "block")
+            settings.tags_to_ignore, settings.tags_to_create_appt, settings.tags_future,
+            settings.tags_to_block_time) == (
+        "ilm", "akquise, legal, mail", "", "focus time, no ext.* appt.*, ^blocked$",
+        "2private, 2privat", "appt", "future", "block")
+
+
+def test_settings_page_shows_default_ignored_tags(tmp_path):
+    app = create_app(settings_path=tmp_path / "settings.ini", task_settings_client=object())
+    response = TestClient(app).get("/settings")
+
+    assert response.status_code == 200
+    assert 'name="tags_to_ignore"' in response.text
+    assert 'value="2private, 2privat"' in response.text
 
 
 def test_settings_reject_invalid_time_and_negative_duration():

@@ -49,6 +49,35 @@ def test_scheduling_service_retrieves_dtos_and_publishes_schedule(monkeypatch):
     assert [event["stage"] for event in events][-1] == "complete"
 
 
+def test_scheduling_service_excludes_tasks_with_configured_ignore_tags(monkeypatch):
+    private = {
+        "id": "private", "parent_id": None, "description": "Private @2PRIVATE",
+        "priority": 1, "start_date": "2000-01-01", "due_date": None,
+        "source_name": "Work", "has_children": False,
+    }
+    normal = {
+        "id": "normal", "parent_id": None, "description": "Normal task",
+        "priority": 1, "start_date": "2000-01-01", "due_date": None,
+        "source_name": "Work", "has_children": False,
+    }
+    service = Mock()
+    service.get_tasks.return_value = [private, normal]
+    monkeypatch.setattr(lurchcal_wf, "TaskServerClient", lambda _: service)
+    monkeypatch.setattr(lurchcal_wf.SchedulingService, "__init__", lambda self, settings, **kwargs: _service_init(
+        self, settings, service))
+    calendar = Mock()
+    calendar.get_appointments.return_value = []
+    monkeypatch.setattr(lurchcal_wf.CalendarFactory, "create_calendar", lambda _: calendar)
+    scheduler = Mock()
+    scheduler.schedule_everything.return_value = ([], [])
+    monkeypatch.setattr(lurchcal_wf, "TaskScheduler", lambda _: scheduler)
+
+    lurchcal_wf.SchedulingService(settings()).create_schedule(publish_schedule=False)
+
+    passed_tasks = scheduler.schedule_everything.call_args.args[2]
+    assert [task.description for task in passed_tasks] == ["Normal task"]
+
+
 def test_scheduling_service_groups_default_tasks_for_calendar_only(monkeypatch):
     service = Mock()
     service.get_tasks.return_value = []

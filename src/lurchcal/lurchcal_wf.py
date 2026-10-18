@@ -178,6 +178,12 @@ class SchedulingService:
         task_tree = build_tree(tasks)
         tagged_task_list = [node.get_attr("task") for node in preorder_iter(
             task_tree, filter_condition=lambda x: x.node_name != "0.0")]
+        ignored_tags = {tag.strip().casefold() for tag in settings.tags.tags_to_ignore if tag.strip()}
+        if ignored_tags:
+            tagged_task_list = [
+                task for task in tagged_task_list
+                if not ignored_tags.intersection(tag.casefold() for tag in task.tags)
+            ]
 
         emit({"stage": "calendar", "message": "Reading calendar availability"})
         cal = self.calendar_factory.create_calendar(settings.appt.app)

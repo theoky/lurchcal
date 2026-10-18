@@ -20,6 +20,7 @@ def test_ini_config_adapts_tag_lists_and_times():
     assert settings.appt.app == "outlook"
     assert settings.tags.tag_order == ("akquise", "legal")
     assert settings.tags.tag_ignore_appt == ("focus time", "^blocked$")
+    assert settings.tags.tags_to_ignore == ("2private", "2privat")
     assert settings.task_server_url == "http://127.0.0.1:8001"
 
 
@@ -36,6 +37,19 @@ def test_task_server_base_url_defaults_without_zim_paths():
     settings = settings_from_config(config)
     assert settings.task_server_url == "http://127.0.0.1:8001"
     assert not hasattr(settings, "zim")
+
+
+def test_ignored_tags_can_be_configured_as_comma_separated_values():
+    config = ConfigParser()
+    config.read_dict({
+        "appt": {"min_task_len_4_appt": "15", "lunch_break": "30", "short_break": "15",
+                 "short_break_after_ilm": "1", "days_for_scheduling": "7", "lunch_break_time": "12:00",
+                 "before_noon_break_time": "10:00", "start_of_day": "08:30", "hours_per_day": "9"},
+        "tasks": {"def_task_len": "6", "min_task_split": "60"},
+        "tags": {"tags_to_ignore": " 2private, confidential "},
+    })
+
+    assert settings_from_config(config).tags.tags_to_ignore == ("2private", "confidential")
 
 
 def test_task_server_base_url_reads_legacy_underscore_section():
