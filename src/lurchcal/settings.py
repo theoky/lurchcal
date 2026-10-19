@@ -9,6 +9,7 @@ from typing import Protocol
 class ConfigReader(Protocol):
     def get(self, section: str, option: str) -> str: ...
     def getint(self, section: str, option: str) -> int: ...
+    def getboolean(self, section: str, option: str) -> bool: ...
 
 
 def _split(value: str) -> tuple[str, ...]:
@@ -60,6 +61,7 @@ class AppSettings:
     tasks: TaskSettings
     tags: TagSettings
     task_server_url: str = "http://127.0.0.1:8001"
+    create_grouped_private_appointments: bool = False
 
 
 def settings_from_config(config: ConfigReader) -> AppSettings:
@@ -103,7 +105,17 @@ def settings_from_config(config: ConfigReader) -> AppSettings:
             ),
         ),
         task_server_url=_read_task_server_url(config),
+        create_grouped_private_appointments=_get_optional_bool(
+            config, "appt", "create_grouped_private_appointments", False
+        ),
     )
+
+
+def _get_optional_bool(config: ConfigReader, section: str, option: str, fallback: bool) -> bool:
+    try:
+        return config.getboolean(section, option)
+    except Exception:
+        return fallback
 
 
 def _read_task_server_url(config: ConfigReader) -> str:

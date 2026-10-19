@@ -9,6 +9,7 @@
 <label>Lunch break duration (minutes) <input type="number" name="lunch_break" min="0" required value="{{ settings.lunch_break }}"></label>
 <label>Short break duration (minutes) <input type="number" name="short_break" min="0" required value="{{ settings.short_break }}"></label>
 <label><input type="checkbox" name="short_break_after_ilm" value="true" {% if settings.short_break_after_ilm %}checked{% endif %}> Break after ILM tasks</label>
+<label><input type="checkbox" name="create_grouped_private_appointments" value="false" {% if settings.create_grouped_private_appointments %}checked{% endif %}> Create grouped private task appointments</label>
 <label>Lunch break time <input type="time" name="lunch_break_time" required value="{{ settings.lunch_break_time }}"></label>
 <label>Before-noon break time <input type="time" name="before_noon_break_time" required value="{{ settings.before_noon_break_time }}"></label>
 <label>Start of day <input type="time" name="start_of_day" required value="{{ settings.start_of_day }}"></label>

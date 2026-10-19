@@ -18,6 +18,7 @@ class LurchCalSettings(BaseModel):
     lunch_break: int = Field(default=30, ge=0)
     short_break: int = Field(default=15, ge=0)
     short_break_after_ilm: bool = True
+    create_grouped_private_appointments: bool = False
     lunch_break_time: str = "12:00"
     before_noon_break_time: str = "10:00"
     start_of_day: str = "9:00"
@@ -83,6 +84,9 @@ class LurchCalSettingsStore:
             lunch_break=parser.getint("appt", "lunch_break", fallback=30),
             short_break=parser.getint("appt", "short_break", fallback=15),
             short_break_after_ilm=parser.getboolean("appt", "short_break_after_ilm", fallback=True),
+            create_grouped_private_appointments=parser.getboolean(
+                "appt", "create_grouped_private_appointments", fallback=False
+            ),
             lunch_break_time=parser.get("appt", "lunch_break_time", fallback="12:00"),
             before_noon_break_time=parser.get("appt", "before_noon_break_time", fallback="10:00"),
             start_of_day=parser.get("appt", "start_of_day", fallback="9:00"),
@@ -110,6 +114,7 @@ class LurchCalSettingsStore:
             "appt": {"app": settings.calendar_provider, "days_for_scheduling": str(settings.days_for_scheduling),
                      "min_task_len_4_appt": str(settings.min_task_len_4_appt), "lunch_break": str(settings.lunch_break),
                      "short_break": str(settings.short_break), "short_break_after_ilm": str(int(settings.short_break_after_ilm)),
+                     "create_grouped_private_appointments": str(int(settings.create_grouped_private_appointments)),
                      "lunch_break_time": settings.lunch_break_time, "before_noon_break_time": settings.before_noon_break_time,
                      "start_of_day": settings.start_of_day, "hours_per_day": str(settings.hours_per_day)},
             "tasks": {"def_task_len": str(settings.def_task_len), "min_task_split": str(settings.min_task_split)},
@@ -139,6 +144,7 @@ class LurchCalSettingsStore:
         defaults = {
             "appt": {"min_task_len_4_appt": str(settings.min_task_len_4_appt), "lunch_break": str(settings.lunch_break),
                      "short_break": str(settings.short_break), "short_break_after_ilm": str(int(settings.short_break_after_ilm)),
+                     "create_grouped_private_appointments": str(int(settings.create_grouped_private_appointments)),
                      "days_for_scheduling": str(settings.days_for_scheduling), "lunch_break_time": settings.lunch_break_time,
                      "before_noon_break_time": settings.before_noon_break_time, "start_of_day": settings.start_of_day,
                      "hours_per_day": str(settings.hours_per_day), "app": settings.calendar_provider},

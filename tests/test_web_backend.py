@@ -15,6 +15,7 @@ def test_settings_round_trip_validation(tmp_path):
         hours_per_day=8, def_task_len=7, min_task_split=45, ilm="ivy",
         tag_order="urgent, admin", tag_projects="project", tag_ignore_appt="focus",
         tags_to_ignore="2private, internal",
+        create_grouped_private_appointments=False,
         tags_to_create_appt="meeting", tags_future="later", tags_to_block_time="busy")
     store.save(settings)
     assert store.load() == settings
@@ -25,6 +26,7 @@ def test_settings_round_trip_validation(tmp_path):
     assert app_settings.tasks.def_task_len == 7
     assert app_settings.tags.tag_order == ("urgent", "admin")
     assert app_settings.tags.tags_to_ignore == ("2private", "internal")
+    assert not app_settings.create_grouped_private_appointments
     assert app_settings.tags.tags_to_block_time == ("busy",)
 
 
@@ -35,6 +37,7 @@ def test_settings_defaults_match_legacy_config_defaults():
     assert (settings.lunch_break_time, settings.before_noon_break_time, settings.start_of_day,
             settings.hours_per_day, settings.calendar_provider) == ("12:00", "10:00", "9:00", 9, "outlook")
     assert (settings.def_task_len, settings.min_task_split) == (6, 60)
+    assert settings.create_grouped_private_appointments is False
     assert (settings.ilm, settings.tag_order, settings.tag_projects, settings.tag_ignore_appt,
             settings.tags_to_ignore, settings.tags_to_create_appt, settings.tags_future,
             settings.tags_to_block_time) == (
@@ -49,6 +52,30 @@ def test_settings_page_shows_default_ignored_tags(tmp_path):
     assert response.status_code == 200
     assert 'name="tags_to_ignore"' in response.text
     assert 'value="2private, 2privat"' in response.text
+    assert 'name="create_grouped_private_appointments"' in response.text
+    assert 'name="create_grouped_private_appointments" value="true"' in response.text
+    assert 'name="create_grouped_private_appointments" value="true" checked' not in response.text
+
+    enabled_store = LurchCalSettingsStore(tmp_path / "enabled-settings.ini")
+    enabled_store.save(LurchCalSettings(create_grouped_private_appointments=True))
+    enabled_app = create_app(settings_path=enabled_store.path, task_settings_client=object())
+    enabled_response = TestClient(enabled_app).get("/settings")
+    assert 'name="create_grouped_private_appointments" value="true" checked' in enabled_response.text
+
+
+def test_settings_save_treats_unchecked_grouped_appointment_option_as_false(tmp_path):
+    app = create_app(settings_path=tmp_path / "settings.ini", task_settings_client=object())
+    response = TestClient(app).post(
+        "/ui/settings/save-and-test-lurchcal",
+        data={
+            "task_server_url": "http://127.0.0.1:8001",
+            "calendar_provider": "google",
+            "create_grouped_private_appointments": "false",
+        },
+    )
+
+    assert response.status_code == 200
+    assert LurchCalSettingsStore(tmp_path / "settings.ini").load().create_grouped_private_appointments is False
 
 
 def test_settings_reject_invalid_time_and_negative_duration():

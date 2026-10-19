@@ -93,7 +93,15 @@ def test_scheduling_service_groups_default_tasks_for_calendar_only(monkeypatch):
     calendar.get_appointments.return_value = []
     monkeypatch.setattr(lurchcal_wf.CalendarFactory, "create_calendar", lambda _: calendar)
 
-    result = lurchcal_wf.SchedulingService(settings()).create_schedule(
+    app_settings = settings()
+    app_settings = AppSettings(
+        appt=app_settings.appt,
+        tasks=app_settings.tasks,
+        tags=app_settings.tags,
+        task_server_url=app_settings.task_server_url,
+        create_grouped_private_appointments=True,
+    )
+    result = lurchcal_wf.SchedulingService(app_settings).create_schedule(
         create_calendar_appointments=True, publish_schedule=False
     )
 
@@ -103,6 +111,37 @@ def test_scheduling_service_groups_default_tasks_for_calendar_only(monkeypatch):
     assert appointments[0].duration == 12
     assert appointments[0].task.description == "One\nTwo"
     assert result.scheduled_tasks == [first, second]
+
+
+def test_grouped_private_appointments_can_be_disabled(monkeypatch):
+    service = Mock()
+    service.get_tasks.return_value = []
+    monkeypatch.setattr(lurchcal_wf, "TaskServerClient", lambda _: service)
+    monkeypatch.setattr(lurchcal_wf.SchedulingService, "__init__", lambda self, settings, **kwargs: _service_init(
+        self, settings, service))
+    first = ScheduledTask(datetime(2026, 10, 5, 9), Task("One"), 6)
+    second = ScheduledTask(datetime(2026, 10, 5, 9, 6), Task("Two"), 6)
+    ordinary = ScheduledTask(datetime(2026, 10, 5, 9, 12), Task("Ordinary"), 30)
+    scheduler = Mock()
+    scheduler.schedule_everything.return_value = ([first, second, ordinary], [])
+    monkeypatch.setattr(lurchcal_wf, "TaskScheduler", lambda _: scheduler)
+    calendar = Mock()
+    calendar.get_appointments.return_value = []
+    monkeypatch.setattr(lurchcal_wf.CalendarFactory, "create_calendar", lambda _: calendar)
+    app_settings = settings()
+    app_settings = AppSettings(
+        appt=app_settings.appt,
+        tasks=app_settings.tasks,
+        tags=app_settings.tags,
+        task_server_url=app_settings.task_server_url,
+        create_grouped_private_appointments=False,
+    )
+
+    lurchcal_wf.SchedulingService(app_settings).create_schedule(
+        create_calendar_appointments=True, publish_schedule=False
+    )
+
+    calendar.create_appointments_4_tasks.assert_called_once_with([ordinary])
 
 
 def test_scheduling_service_surfaces_server_failure_before_calendar_creation(monkeypatch):

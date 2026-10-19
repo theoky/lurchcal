@@ -161,7 +161,10 @@ class CalendarOutlook(Calendar):
 
             appt.MeetingStatus = OlMeetingStatus.olNonMeeting.value
             appt.ReminderSet = False
-            if st.task.create_appt_anyway:
+            if hasattr(st, "_grouped_default_tasks"):
+                appt.BusyStatus = OlBusyStatus.olFree.value
+                appt.Sensitivity = OlSensitivity.olPrivate.value
+            elif st.task.create_appt_anyway:
                 appt.BusyStatus = OlBusyStatus.olBusy.value
                 appt.Sensitivity = OlSensitivity.olNormal.value
             else:

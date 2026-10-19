@@ -77,6 +77,8 @@ def test_google_calendar_uses_grouped_title_and_includes_every_task(monkeypatch)
 
     assert batch.requests[0]["summary"] == "Gruppierte Aufgaben"
     assert "First\nSecond" in batch.requests[0]["description"]
+    assert batch.requests[0]["transparency"] == "transparent"
+    assert batch.requests[0]["visibility"] == "private"
 
 
 def test_outlook_calendar_uses_grouped_title_and_body(monkeypatch):
@@ -97,3 +99,5 @@ def test_outlook_calendar_uses_grouped_title_and_body(monkeypatch):
 
     assert appt.Subject == "Gruppierte Aufgaben"
     assert "First\nSecond" in appt.Body
+    assert appt.BusyStatus == 0
+    assert appt.Sensitivity == 2

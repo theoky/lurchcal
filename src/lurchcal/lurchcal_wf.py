@@ -219,9 +219,12 @@ class SchedulingService:
                 )
             ),
         )
-        grouped_candidates = group_default_duration_appointments(
-            appointment_candidates, settings.tasks.def_task_len
-        )
+        if settings.create_grouped_private_appointments:
+            grouped_candidates = group_default_duration_appointments(
+                appointment_candidates, settings.tasks.def_task_len
+            )
+        else:
+            grouped_candidates = appointment_candidates
         task_book = [
             item for item in grouped_candidates
             if (

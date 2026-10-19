@@ -264,6 +264,7 @@ def create_app(settings_path=None, task_settings_client=None, calendar_factory=N
             form = await _read_form(request)
             # HTML omits unchecked checkboxes entirely.
             form.setdefault("short_break_after_ilm", "false")
+            form.setdefault("create_grouped_private_appointments", "false")
             settings = LurchCalSettings(**form)
         except Exception as exc:
             return templates.TemplateResponse(request=request, name="message.html", context={"message": "Invalid settings: " + _friendly_error(exc)}, status_code=422)

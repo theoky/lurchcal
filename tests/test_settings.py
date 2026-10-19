@@ -22,6 +22,7 @@ def test_ini_config_adapts_tag_lists_and_times():
     assert settings.tags.tag_ignore_appt == ("focus time", "^blocked$")
     assert settings.tags.tags_to_ignore == ("2private", "2privat")
     assert settings.task_server_url == "http://127.0.0.1:8001"
+    assert settings.create_grouped_private_appointments is False
 
 
 def test_task_server_base_url_defaults_without_zim_paths():

@@ -157,7 +157,10 @@ class CalendarGoogle(Calendar):
                 
                 transp ='transparent'   # Equivalent to olFree in Outlook
                 vis = 'private'         # Equivalent to olPrivate in Outlook
-                if st.task.create_appt_anyway:
+                if hasattr(st, "_grouped_default_tasks"):
+                    transp = 'transparent'
+                    vis = 'private'
+                elif st.task.create_appt_anyway:
                     transp ='opaque'
                     vis = 'default'
 
