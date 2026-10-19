@@ -3,7 +3,7 @@
 {% if job.progress %}<ol>{% for event in job.progress %}<li>{{ event.message|default(event.stage) }}</li>{% endfor %}</ol>{% else %}<p>Waiting for worker…</p>{% endif %}
 {% if job.status == 'failed' %}<p class="error">{{ job.error }}</p>{% endif %}
 {% if job.status == 'succeeded' %}
-<p class="success">Operation completed.</p>
+<p class="success">Operation completed.{% if job.result and job.result.statistics is defined %} {{ job.result.statistics.get('unscheduled_deadline_count', 0) }} task(s) with specified deadlines could not be scheduled; details are on the Task lists tab.{% endif %}</p>
 {% if job.result %}<p>Schedule details are available in the Task lists tab.</p>{% endif %}
 {% endif %}</article>
 {% if job.status in ['succeeded','failed'] %}<script>document.querySelectorAll('.actions button').forEach(button=>button.disabled=false);document.body.dispatchEvent(new Event('schedule-updated'));</script>{% endif %}

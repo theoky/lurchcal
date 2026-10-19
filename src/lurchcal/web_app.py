@@ -158,6 +158,15 @@ def create_app(settings_path=None, task_settings_client=None, calendar_factory=N
                         "scheduled_tasks": getattr(result, "scheduled_tasks", []) if not isinstance(result, dict) else result.get("scheduled_tasks", []),
                         "unscheduled_tasks": getattr(result, "unscheduled_tasks", []) if not isinstance(result, dict) else result.get("unscheduled_tasks", []),
                     }
+                    unscheduled_with_deadlines = [
+                        item for item in app.state.last_schedule_result["unscheduled_tasks"]
+                        if getattr(item, "due_date", None) is not None
+                        or (isinstance(item, dict) and item.get("due_date"))
+                    ]
+                    app.state.last_schedule_result["unscheduled_deadline_tasks"] = unscheduled_with_deadlines
+                    statistics = app.state.last_schedule_result["statistics"]
+                    if isinstance(statistics, dict):
+                        statistics["unscheduled_deadline_count"] = len(unscheduled_with_deadlines)
                 return result
             except Exception as exc:
                 logger.exception("Browser workflow job failed")
@@ -182,9 +191,11 @@ def create_app(settings_path=None, task_settings_client=None, calendar_factory=N
 
     @app.get("/", response_class=HTMLResponse)
     def index(request: Request):
+        result = getattr(app.state, "last_schedule_result", None)
         return templates.TemplateResponse(request=request, name="index.html", context={
             "settings": store.load(), "source": _read_source_settings(task_client),
-            "last_result": getattr(app.state, "last_schedule_result", None),
+            "last_result": result,
+            "unscheduled_deadline_count": len(result["unscheduled_deadline_tasks"]) if result else 0,
         })
 
     @app.get("/settings", response_class=HTMLResponse)
@@ -250,6 +261,14 @@ def create_app(settings_path=None, task_settings_client=None, calendar_factory=N
     def ui_results(request: Request):
         result = getattr(app.state, "last_schedule_result", None)
         return templates.TemplateResponse(request=request, name="results.html", context={"result": result})
+
+    @app.get("/ui/deadline-summary", response_class=HTMLResponse)
+    def ui_deadline_summary(request: Request):
+        result = getattr(app.state, "last_schedule_result", None)
+        count = len(result["unscheduled_deadline_tasks"]) if result else 0
+        return templates.TemplateResponse(
+            request=request, name="deadline_summary.html", context={"count": count}
+        )
 
     @app.get("/ui/jobs/{job_id}", response_class=HTMLResponse)
     def ui_job(request: Request, job_id: str):

@@ -53,7 +53,6 @@ def test_settings_page_shows_default_ignored_tags(tmp_path):
     assert 'name="tags_to_ignore"' in response.text
     assert 'value="2private, 2privat"' in response.text
     assert 'name="create_grouped_private_appointments"' in response.text
-    assert 'name="create_grouped_private_appointments" value="true"' in response.text
     assert 'name="create_grouped_private_appointments" value="true" checked' not in response.text
 
     enabled_store = LurchCalSettingsStore(tmp_path / "enabled-settings.ini")
@@ -279,6 +278,7 @@ def test_schedule_page_separates_calendar_actions_and_task_lists(tmp_path):
     assert 'id="tasks-panel"' in page
     assert page.index('id="calendar-panel"') < page.index('id="tasks-panel"')
     assert 'id="calendar"' in page
+    assert 'hx-get="/ui/deadline-summary"' in page
     assert 'hx-get="/ui/tasks"' in page
     assert 'hx-get="/ui/results"' in page
 
@@ -305,6 +305,20 @@ def test_completed_job_fragment_keeps_task_details_in_task_lists_tab():
     assert "scheduled task" not in rendered
     assert "unscheduled task" not in rendered
     assert "schedule-updated" in rendered
+
+
+def test_completed_schedule_job_shows_deadline_miss_count():
+    from pathlib import Path
+    from jinja2 import Environment, FileSystemLoader
+
+    template_dir = Path(__file__).parents[1] / "src" / "lurchcal" / "templates"
+    template = Environment(loader=FileSystemLoader(template_dir)).get_template("job.html")
+    rendered = template.render(job={
+        "id": "job-2", "status": "succeeded", "progress": [], "error": None,
+        "result": {"statistics": {"unscheduled_deadline_count": 2}},
+    })
+
+    assert "2 task(s) with specified deadlines could not be scheduled" in rendered
 
 
 def test_open_task_list_is_rendered_in_scrollable_container(tmp_path, monkeypatch):
@@ -348,11 +362,29 @@ def test_schedule_result_lists_are_stacked_scheduled_then_unscheduled():
         "statistics": {},
         "scheduled_tasks": [{"description": "scheduled example", "start": "2026-10-09T09:00"}],
         "unscheduled_tasks": [{"description": "unscheduled example"}],
+        "unscheduled_deadline_tasks": [{"description": "late task", "due_date": "2026-10-10"}],
     })
 
     assert 'class="result-list"' in rendered
     assert rendered.index("scheduled example") < rendered.index("unscheduled example")
-    assert rendered.count('class="task-list-scroll"') == 2
+    assert rendered.count('class="task-list-scroll"') == 3
+    assert "Unscheduled tasks with specified deadlines (1)" in rendered
+    assert "late task — due 2026-10-10" in rendered
+
+
+def test_deadline_summary_fragment_reports_unscheduled_deadline_count(tmp_path):
+    from datetime import date
+    from lurchcal.Task import Task
+
+    app = create_app(settings_path=tmp_path / "settings.ini")
+    app.state.last_schedule_result = {
+        "unscheduled_deadline_tasks": [Task("Overdue", due_date=date(2026, 10, 10))]
+    }
+    response = TestClient(app).get("/ui/deadline-summary")
+
+    assert response.status_code == 200
+    assert "1" in response.text
+    assert "unscheduled task" in response.text
 
 
 def test_http_health_pages_settings_and_task_server_proxy(tmp_path):

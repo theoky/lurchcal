@@ -242,6 +242,9 @@ class SchedulingService:
         result = WorkflowResult(scheduled, unscheduled, [], {
             "task_count": len(tagged_task_list), "scheduled_count": len(scheduled),
             "unscheduled_count": len(unscheduled), "appointment_count": len(task_book),
+            "unscheduled_deadline_count": sum(
+                task.due_date is not None for task in unscheduled
+            ),
         })
         emit({"stage": "complete", "message": "Schedule completed", "statistics": result.statistics})
         return result

@@ -21,6 +21,8 @@ The local FastAPI application (`lurchcal.web_app`) uses Jinja2, HTMX, and Alpine
 
 The browser app binds to `127.0.0.1:8000`, and the Task Server to `127.0.0.1:8001`; browser-facing settings routes proxy task-source operations through LurchCal. Web scheduling and calendar modification run in the AP4 single-worker in-memory job manager; the browser guards conflicting actions and polls server-rendered job fragments. Outlook COM apartment setup and all provider object use occur inside that worker thread. The Jinja2/HTMX browser displays task results and settings; Alpine.js is limited to transient control state. FullCalendar receives normalized provider commitments and generated schedule slots for only the requested visible date range. Calendar interaction remains view-only.
 
+After a scheduling run, the Calendar & scheduling tab reports how many unscheduled tasks have specified deadlines. The Task lists tab displays those task descriptions and deadline dates alongside the complete scheduled and unscheduled task lists.
+
 ## Data Flow
 1. **Configuration** – LurchCal maintains its scheduling/calendar settings and Task Server base URL, adapting them to typed settings in `lurchcal.settings`. The Task Server stores Zim `path_db` and `path_page` in its own local INI file.
 2. **Task retrieval** – `create_task_appointments` retrieves open tasks from `TaskServerClient` for an explicit reference date, parses the DTOs, builds a task tree with `build_tree`, and flattens it in priority order. Duration and tag metadata cascade from parent tasks to children.

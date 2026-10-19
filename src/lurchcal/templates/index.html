@@ -10,6 +10,7 @@
 <button id="tasks-tab" class="tab-button" type="button" role="tab" :aria-selected="activeTab==='tasks'" aria-controls="tasks-panel" @click="activeTab='tasks'">Task lists</button>
 </div>
 <div id="calendar-panel" role="tabpanel" aria-labelledby="calendar-tab" x-show="activeTab==='calendar'">
+<div id="deadline-summary" hx-get="/ui/deadline-summary" hx-trigger="load, schedule-updated from:body" hx-swap="innerHTML"><p>Loading deadline summary…</p></div>
 <section><h2>Schedule actions</h2><div class="actions">
 <form hx-post="/ui/jobs/publish" hx-target="#job-status" hx-swap="innerHTML" @submit="if(busy){$event.preventDefault()}else{busy=true}"><button type="submit" :disabled="busy">Create and publish schedule</button></form>
 <form hx-post="/ui/jobs/schedule" hx-target="#job-status" hx-swap="innerHTML" @submit="if(busy){$event.preventDefault()}else{busy=true}"><input type="hidden" name="create_calendar_appointments" value="true"><button type="submit" :disabled="busy">Create schedule and calendar appointments</button></form>
