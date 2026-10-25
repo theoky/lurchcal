@@ -22,6 +22,8 @@ from lurchcal import definitions
 
 logger = logging.getLogger(__name__)
 
+GOOGLE_EVENT_COLOR_TANGERINE = "6"
+
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ["https://www.googleapis.com/auth/calendar.events"]
@@ -174,6 +176,7 @@ class CalendarGoogle(Calendar):
                         if hasattr(st, "_grouped_default_tasks")
                         else st.task.description[:40]
                     ),
+                    'colorId': GOOGLE_EVENT_COLOR_TANGERINE,
                     'description': description,
                     'start': {
                         'dateTime': start_time,

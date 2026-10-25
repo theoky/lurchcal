@@ -19,6 +19,9 @@ from lurchcal.outlook_enums import *
 
 logger = logging.getLogger(__name__)
 
+LURCHCAL_CATEGORY_NAME = "LurchCal"
+OL_CATEGORY_COLOR_ORANGE = 2
+
 
 class CalendarOutlook(Calendar):
     # Outlook COM returns naive datetimes in the machine's local timezone.
@@ -124,6 +127,19 @@ class CalendarOutlook(Calendar):
     def create_appointments_4_tasks(self, scheduled_tasks):
 
         cal = self.outlook.GetDefaultFolder(9).Items
+        categories = self.outlook.Application.Session.Categories
+        lurchcal_category = None
+        for index in range(1, categories.Count + 1):
+            category = categories.Item(index)
+            if category.Name.casefold() == LURCHCAL_CATEGORY_NAME.casefold():
+                lurchcal_category = category
+                break
+        if lurchcal_category is None:
+            lurchcal_category = categories.Add(
+                LURCHCAL_CATEGORY_NAME, OL_CATEGORY_COLOR_ORANGE
+            )
+        else:
+            lurchcal_category.Color = OL_CATEGORY_COLOR_ORANGE
 
         for st in scheduled_tasks:
 
@@ -158,6 +174,7 @@ class CalendarOutlook(Calendar):
                 b += f"Tags: {tags}"
 
             appt.Body = b
+            appt.Categories = LURCHCAL_CATEGORY_NAME
 
             appt.MeetingStatus = OlMeetingStatus.olNonMeeting.value
             appt.ReminderSet = False

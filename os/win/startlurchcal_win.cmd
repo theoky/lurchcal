@@ -19,18 +19,18 @@ set "PYTHONPATH=%~dp0src;%PYTHONPATH%"
 set "LURCHCAL_TASK_SERVER_CONFIG=%LOCALAPPDATA%\LurchCal\task_server.ini"
 
 rem Reuse any service already listening on the configured port.
-python "%~dp0scripts\check_port.py" LURCHCAL_TASK_SERVER_HOST LURCHCAL_TASK_SERVER_PORT
+python "%~dp0..\..\scripts\check_port.py" LURCHCAL_TASK_SERVER_HOST LURCHCAL_TASK_SERVER_PORT
 
 if errorlevel 1 (
     echo Starting task server...
-    start "LurchCal Task Server" /D "%~dp0src" cmd /k "python -m task_server"
+    start "LurchCal Task Server" /D "%~dp0..\..\src" cmd /k "python -m task_server"
 )
 
-python "%~dp0scripts\check_port.py" LURCHCAL_WEB_HOST LURCHCAL_WEB_PORT
+python "%~dp0..\..\scripts\check_port.py" LURCHCAL_WEB_HOST LURCHCAL_WEB_PORT
 
 if errorlevel 1 (
     echo Starting web server...
-    start "LurchCal Web Server" /D "%~dp0src" cmd /k "python -m lurchcal.web_server"
+    start "LurchCal Web Server" /D "%~dp0..\..\src" cmd /k "python -m lurchcal.web_server"
 )
 
 echo Waiting for LurchCal at %LURCHCAL_URL% ...

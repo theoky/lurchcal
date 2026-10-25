@@ -79,6 +79,7 @@ def test_google_calendar_uses_grouped_title_and_includes_every_task(monkeypatch)
     assert "First\nSecond" in batch.requests[0]["description"]
     assert batch.requests[0]["transparency"] == "transparent"
     assert batch.requests[0]["visibility"] == "private"
+    assert batch.requests[0]["colorId"] == "6"
 
 
 def test_outlook_calendar_uses_grouped_title_and_body(monkeypatch):
@@ -90,14 +91,24 @@ def test_outlook_calendar_uses_grouped_title_and_body(monkeypatch):
         "Add": lambda self, *args: type("Property", (), {})()
     })(), "Save": lambda self: None})()
     items = type("Items", (), {"Add": lambda self: appt})()
+    category = type("Category", (), {"Name": "LurchCal", "Color": 0})()
+    categories = type("Categories", (), {
+        "Count": 1,
+        "Item": lambda self, index: category,
+    })()
     outlook = CalendarOutlook()
-    outlook.outlook = type("Outlook", (), {"GetDefaultFolder": lambda self, _: type(
-        "Folder", (), {"Items": items}
-    )()})()
+    outlook.outlook = type("Outlook", (), {
+        "Application": type("Application", (), {
+            "Session": type("Session", (), {"Categories": categories})()
+        })(),
+        "GetDefaultFolder": lambda self, _: type("Folder", (), {"Items": items})(),
+    })()
 
     outlook.create_appointments_4_tasks(grouped)
 
     assert appt.Subject == "Gruppierte Aufgaben"
     assert "First\nSecond" in appt.Body
+    assert appt.Categories == "LurchCal"
+    assert category.Color == 2
     assert appt.BusyStatus == 0
     assert appt.Sensitivity == 2
