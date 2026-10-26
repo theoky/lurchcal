@@ -419,4 +419,4 @@ The architecture should allow later evolution, but agents must not implement the
 - `TaskParser._read_zim_tasks()` currently filters `status = 0`, `not waiting`, and `start <= date()` and orders by due date, priority, and start date.
 - `write_to_zim_page()` in `lurchcal_wf.py` defines the current schedule-page output format.
 - `CalendarOutlook` uses `win32com.client` and `CalendarGoogle` uses Google's API libraries.
-- The legacy desktop UI was retained through AP5 and removed in AP6 after browser parity was verified.
+

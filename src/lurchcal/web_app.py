@@ -1,4 +1,4 @@
-"""Local LurchCal FastAPI/Jinja2 backend and AP5 browser interface."""
+"""Local LurchCal FastAPI/Jinja2 backend and browser interface."""
 from datetime import datetime, timedelta
 import logging
 from pathlib import Path

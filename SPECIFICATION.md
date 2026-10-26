@@ -19,7 +19,7 @@ The local FastAPI application (`lurchcal.web_app`) uses Jinja2, HTMX, and Alpine
 
    When enabled, consecutive scheduled tasks each retaining the configured default duration are combined into one private/free appointment titled **“Gruppierte Aufgaben”**, with all task descriptions in its body. The **Create grouped private task appointments** setting defaults to disabled. When disabled, these short grouped appointments are omitted; longer and explicitly requested appointments retain their existing behavior. Explicit-duration tasks, inherited non-default durations, and segments created by splitting long tasks are never grouped.
 
-The browser app binds to `127.0.0.1:8000`, and the Task Server to `127.0.0.1:8001`; browser-facing settings routes proxy task-source operations through LurchCal. Web scheduling and calendar modification run in the AP4 single-worker in-memory job manager; the browser guards conflicting actions and polls server-rendered job fragments. Outlook COM apartment setup and all provider object use occur inside that worker thread. The Jinja2/HTMX browser displays task results and settings; Alpine.js is limited to transient control state. FullCalendar receives normalized provider commitments and generated schedule slots for only the requested visible date range. Calendar interaction remains view-only.
+The browser app binds to `127.0.0.1:8000`, and the Task Server to `127.0.0.1:8001`; browser-facing settings routes proxy task-source operations through LurchCal. Web scheduling and calendar modification run in the single-worker in-memory job manager; the browser guards conflicting actions and polls server-rendered job fragments. Outlook COM apartment setup and all provider object use occur inside that worker thread. The Jinja2/HTMX browser displays task results and settings; Alpine.js is limited to transient control state. FullCalendar receives normalized provider commitments and generated schedule slots for only the requested visible date range. Calendar interaction remains view-only.
 
 After a scheduling run, the Calendar & scheduling tab reports how many unscheduled tasks have specified deadlines. The Task lists tab displays those task descriptions and deadline dates alongside the complete scheduled and unscheduled task lists.
 
@@ -49,7 +49,7 @@ The Task Server's versioned API includes `GET /api/v1/health`, `GET /api/v1/capa
 
 ## Configuration Surface
 - LurchCal settings expose defaults for task lengths, scheduling horizon, calendar provider, tag semantics, and Task Server base URL. Users manage these through the browser Settings page.
-- The AP2 Task Server INI section `[zim]` stores `path_db` and `path_page`. Its default location is `%LOCALAPPDATA%\LurchCal\task_server.ini`, overridable with `LURCHCAL_TASK_SERVER_CONFIG`. The service listens on `127.0.0.1:8001` by default.
+- The Server INI section `[zim]` stores `path_db` and `path_page`. Its default location is `%LOCALAPPDATA%\LurchCal\task_server.ini`, overridable with `LURCHCAL_TASK_SERVER_CONFIG`. The service listens on `127.0.0.1:8001` by default.
 
 ## Current Limitations
 - Error handling is minimal; failures in background threads surface only as strings in the UI. Outlook-specific dependencies prevent cross-platform execution without guards. 

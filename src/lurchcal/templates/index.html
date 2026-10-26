@@ -4,18 +4,17 @@
 <script defer src="/static/htmx.min.js?v=20261009-1"></script><script defer src="/static/alpine.min.js?v=20261009-1"></script><script defer src="/static/fullcalendar/index.global.min.js?v=20261009-1"></script><script defer src="/static/app.js?v=20261009-1"></script></head>
 <body x-data="{busy:false,activeTab:'calendar'}"><header><h1>LurchCal</h1><nav><a href="/">Schedule</a> <a href="/settings">Settings</a></nav></header>
 <main>
-<p class="muted">AP5 browser workflow</p>
 <div class="tab-list" role="tablist" aria-label="Schedule views">
 <button id="calendar-tab" class="tab-button" type="button" role="tab" :aria-selected="activeTab==='calendar'" aria-controls="calendar-panel" @click="activeTab='calendar';$nextTick(()=>window.lurchcalCalendar?.updateSize())">Calendar &amp; scheduling</button>
 <button id="tasks-tab" class="tab-button" type="button" role="tab" :aria-selected="activeTab==='tasks'" aria-controls="tasks-panel" @click="activeTab='tasks'">Task lists</button>
 </div>
 <div id="calendar-panel" role="tabpanel" aria-labelledby="calendar-tab" x-show="activeTab==='calendar'">
-<div id="deadline-summary" hx-get="/ui/deadline-summary" hx-trigger="load, schedule-updated from:body" hx-swap="innerHTML"><p>Loading deadline summary…</p></div>
 <section><h2>Schedule actions</h2><div class="actions">
 <form hx-post="/ui/jobs/publish" hx-target="#job-status" hx-swap="innerHTML" @submit="if(busy){$event.preventDefault()}else{busy=true}"><button type="submit" :disabled="busy">Create and publish schedule</button></form>
 <form hx-post="/ui/jobs/schedule" hx-target="#job-status" hx-swap="innerHTML" @submit="if(busy){$event.preventDefault()}else{busy=true}"><input type="hidden" name="create_calendar_appointments" value="true"><button type="submit" :disabled="busy">Create schedule and calendar appointments</button></form>
 <form hx-post="/ui/jobs/remove" hx-target="#job-status" hx-swap="innerHTML" hx-confirm="Remove LurchCal-created appointments in the scheduling range?" @submit="if(busy){$event.preventDefault()}else{busy=true}"><button class="danger" type="submit" :disabled="busy">Remove LurchCal appointments</button></form></div>
 <div id="job-status" aria-live="polite"><p>Choose an action to start a background job.</p></div></section>
+<div id="deadline-summary" hx-get="/ui/deadline-summary" hx-trigger="load, schedule-updated from:body" hx-swap="innerHTML"><p>Loading deadline summary…</p></div>
 <section><h2>Calendar</h2><p class="legend"><span class="commitment">Existing calendar commitments</span> <span class="planned">Planned LurchCal tasks</span></p><div id="calendar" data-events-url="/api/v1/calendar/events"></div><noscript>Enable JavaScript to view calendar events.</noscript></section>
 </div>
 <div id="tasks-panel" role="tabpanel" aria-labelledby="tasks-tab" x-show="activeTab==='tasks'" x-cloak>
