@@ -30,7 +30,7 @@ Open `http://127.0.0.1:8000`. The Schedule page has a **Calendar & scheduling** 
 
 ## Adding information to tasks
 
-Task in ZIM already have meta information:
+Tasks in ZIM already have meta information:
 
 - start or due date, e.e. \<2024-12-23 means due before Christmas.
 - priority, designated with '!'. Multiple questionmarks denote higher priority [^1].
