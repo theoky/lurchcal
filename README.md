@@ -4,21 +4,21 @@
 
 LurchCal[^1] is a tool which aims to improve personal efficiency[^2].
 
-As a long time user of [ZIM](https://github.com/zim-desktop-wiki) for taking notes and managing tasks, there always has been one challenge: As there are also a significant amount of meetings, keeping some non-meeting time available for working on the tasks can be challenging and blocking focus time doesn't help always.
+As a long time user of [ZIM](https://github.com/zim-desktop-wiki) for taking notes and managing tasks, there always has been one challenge: As there are also a significant amount of meetings, keeping some non-meeting time available for working on the tasks can be challenging and blocking focus time, e.g. in Outlook, doesn't help always.
 
-One way to handle that is to create appointments in the calendar just for tasks[^3]. Doing that manually is not feasible, so automation is needed.
+One way to handle that is to create appointments in the calendar just for tasks[^3]. That way you can plan your work and get an idea if there are too many appointments removing time budget from your takss. Doing that manually is not feasible, so automation is needed.
 
 This is where this tool comes into play. The workflow with this tool is as follows:
 
 - user
-  - enriches tasks in ZIM with meta information like duration, e.g. a task with the text "do something 30m" will take 30min (probably).
+  - enriches tasks in ZIM with meta information like duration, e.g. a task with the text "do something 30m" will take 30min (probably). It is not [org mode for EMACS](https://orgmode.org/).
 - tool
-  - build an internal scheduling calendar with my available working time
-  - get all appointments from my calendar and remove them from the available working time, thus creating a digital twin of my calendar.
-  - add some default appointments (e.g. lunch break) (or not).
+  - builds an internal scheduling calendar with my available working time
+  - gets all appointments from my calendar and removes them from the available working time, thus creating a digital twin of my calendar.
+  - adds some default appointments (e.g. lunch break) (or not, depends on you, resp. the configuration).
     - now the internal calendar contains only time left which is available for working on tasks.
-  - schedule all tasks with a given duration as appointments. Tasks with no duration specified will take a default amount of time (e.g. 6min). Tasks longer than an hour will be split into subtasks of max. one hour length.
-  - schedule according to priority and tags (e.g. ILM (Ivy Lee Method) tasks should be handled first, because they should be done today, then legal task, and so on)
+  - schedules all tasks with a given duration as appointments. Tasks with no duration specified will take a default amount of time (e.g. 6min). Tasks longer than an hour will be split into subtasks of max. one hour length.
+  - schedules according to priority and tags (e.g. ILM (Ivy Lee Method) tasks should be handled first, because they should be done today, then legal task, and so on)
   - see what can't get scheduled and drops out.
 
 The resulting schedule can then be presented as a ZIM page or additionally as appointments in Outlook, so that they block time for work instead for meetings.
@@ -27,7 +27,7 @@ As a bonus, it works without cloud.
 
 ## Status
 
-This tool is currently in prealpha and work in progress. It lacks tests, documentation, and probably much more.
+This tool is currently in alpha and work in progress. It lacks some tests, good documentation, and probably much more. The startup process is currently a little bit manual.
 
 ## How to use it
 
@@ -42,21 +42,7 @@ See [documentation.md](documentation.md) in this directory.
 
 ## Starting the application
 
-The independent Task Server runs as a separate process on `127.0.0.1:8001` by default. Install the project requirements and start it from the repository root:
-
-```text
-python -m task_server
-```
-
-Ensure `src` is on `PYTHONPATH` when running from a source checkout (for example, `set PYTHONPATH=src` in Windows Command Prompt). The server stores its local source settings in `%LOCALAPPDATA%\LurchCal\task_server.ini`; set `LURCHCAL_TASK_SERVER_CONFIG` to use another INI location. Configure `path_db` and `path_page` through `PUT /api/v1/settings`, then check them with `POST /api/v1/settings/validate`.
-
-Example requests: `GET /api/v1/health`, `GET /api/v1/capabilities`, and `GET /api/v1/tasks?as_of=2026-10-04`. Settings use `{"path_db":"C:\\...\\index.db","path_page":"C:\\...\\Geplante_Tasks.txt"}`. A publication request uses `{"scheduled_tasks":[{"start":"2026-10-05T09:00:00","duration":30,"priority":2,"description":"Write report","tags":["work"],"source_name":"Work"}]}`.
-
-The versioned API provides health, capabilities, read-only task retrieval, settings, validation, and schedule publication endpoints. It does not expose task mutation operations. Configure the Task Server base URL in LurchCal if it differs from `http://127.0.0.1:8001`; configure Zim database and schedule-page paths on the Task Server. Removing calendar appointments remains a calendar-only action.
-
-## LurchCal browser app
-
-Start the Task Server and then start the LurchCal browser server from the activated project environment (`src` on `PYTHONPATH`) with `python -m lurchcal.web_server`; browse to `http://127.0.0.1:8000`. The Schedule page opens on the **Calendar & scheduling** tab, with a day view and all three scheduling actions. The **Task lists** tab contains the open tasks and latest scheduled/unscheduled results. Jobs run in the server worker and report progress. The Calendar uses the currently selected provider and requests only the visible date range; it is view-only. Settings lets you save/test the LurchCal Task Server URL, calendar provider and scheduling horizon, and configure/validate Task Server Zim database and schedule-page paths. These paths are entered as text and validated by the Task Server; the browser does not access local files. If Outlook/Google authentication or Task Server/source validation fails, the UI displays an actionable message; configure a working provider/source before scheduling. HTMX drives posts, fragments and job polling; Alpine manages tab and submission state; FullCalendar provides calendar navigation. All browser libraries are served from pinned local files under `src/lurchcal/static` and normal local use does not require a CDN or Node.js.
+For Task Server setup, API configuration, and browser application startup instructions, see [Starting LurchCal](documentation.md#starting-lurchcal) in `documentation.md`.
 
 ## Testing
 

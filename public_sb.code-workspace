@@ -1,0 +1,11 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"pythonTestExplorer.testFramework": "unittest",
+		"python.testing.unittestEnabled": true
+	}
+}
