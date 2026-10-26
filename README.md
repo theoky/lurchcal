@@ -1,12 +1,14 @@
 # LurchCal
 
+A grumpy calendar buttler.
+
 ## Introduction
 
 LurchCal[^1] is a tool which aims to improve personal efficiency[^2].
 
 As a long time user of [ZIM](https://github.com/zim-desktop-wiki) for taking notes and managing tasks, there always has been one challenge: As there are also a significant amount of meetings, keeping some non-meeting time available for working on the tasks can be challenging and blocking focus time, e.g. in Outlook, doesn't help always.
 
-One way to handle that is to create appointments in the calendar just for tasks[^3]. That way you can plan your work and get an idea if there are too many appointments removing time budget from your takss. Doing that manually is not feasible, so automation is needed.
+One way to handle that is to create appointments in the calendar just for tasks[^3]. That way you can plan your work and get an idea if there are too many appointments removing time budget from your tasks. Doing that manually is not feasible, so automation is needed.
 
 This is where this tool comes into play. The workflow with this tool is as follows:
 
@@ -54,7 +56,8 @@ On Windows, activate the project Python environment before testing with `C:\apps
 
 - Communication with Outlook is done via MAPI.
 
-# End Notes
+## End Notes
+
 [^1]: The name Lurch is inspired by the grumpy buttler from the Addams Familiy. This tool (and its author) is sometimes also grumpy.
 
 [^2]: One can frown upon this endeavour, I know.
