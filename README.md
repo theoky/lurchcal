@@ -1,12 +1,12 @@
 # LurchCal
 
-A grumpy calendar buttler.
+A grumpy calendar butler.
 
 ## Introduction
 
 LurchCal[^1] is a tool which aims to improve personal efficiency[^2].
 
-As a long time user of [ZIM](https://github.com/zim-desktop-wiki) for taking notes and managing tasks, there always has been one challenge: As there are also a significant amount of meetings, keeping some non-meeting time available for working on the tasks can be challenging and blocking focus time, e.g. in Outlook, doesn't help always.
+As a long time user of [ZIM](https://github.com/zim-desktop-wiki) for taking notes and managing tasks, there always has been one challenge: As there is also a significant amount of meetings, keeping some non-meeting time available for working on the tasks can be challenging. Blocking focus time, e.g. in Outlook, doesn't help alway, either.
 
 One way to handle that is to create appointments in the calendar just for tasks[^3]. That way you can plan your work and get an idea if there are too many appointments removing time budget from your tasks. Doing that manually is not feasible, so automation is needed.
 
@@ -29,7 +29,7 @@ As a bonus, it works without cloud.
 
 ## Status
 
-This tool is currently in alpha and work in progress. It lacks some tests, good documentation, and probably much more. The startup process is currently a little bit manual.
+This tool is currently in alpha and work in progress. It lacks some tests, good documentation, and probably much more. The startup process is currently a little bit manual. and somewhat automated for Windows.
 
 ## How to use it
 
@@ -50,7 +50,7 @@ For Task Server setup, API configuration, and browser application startup instru
 
 The test suite uses pytest with per-test SQLite databases generated from deterministic fixtures to avoid file-locking issues on Windows. Fixtures in `tests/conftest.py` provide `db_path`, `db_conn`, `ro_conn`, and `engine`, building a fresh database via `tests/zim_test_utils.initialize_zim_sqlite` for every test or worker. Because the schema is synthesized on demand, no binary SQLite file is stored in the repository. Connections and SQLAlchemy engines are closed and disposed during teardown, which is essential on Windows for releasing handles before temporary files are removed.
 
-On Windows, activate the project Python environment before testing with `C:\apps\ac3\Scripts\activate && conda activate lurchcal`. Then run the suite with `python -m pytest -q`, or in parallel with `python -m pytest -q -n auto` (requires `pytest-xdist`). When adding database-dependent tests, depend on the fixtures instead of opening the fixture file directly.
+On Windows, activate the project Python environment before testing with e.g.`<where your Python resides>\Scripts\activate && conda activate lurchcal`. Then run the suite with `python -m pytest -q`, or in parallel with `python -m pytest -q -n auto` (requires `pytest-xdist`). When adding database-dependent tests, depend on the fixtures instead of opening the fixture file directly.
 
 ## Technical Info
 
